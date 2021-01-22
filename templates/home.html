@@ -1,8 +1,56 @@
-{% extends 'base.html' %}
-{% block body %}
-<main>
-    {% for message in get_flashed_messages() %}
-    <div class="alert">{{ message }}</div>
-    {% endfor %}
-</main>
-{% endblock body %}
+<!DOCTYPE html>
+<style type="text/css">
+  body{
+    overflow: auto;
+  }
+</style>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>排片数据查询系统</title>
+  <link rel="icon" type="image/x-icon" href="{{url_for('static',filename='/static/report.ico')}}">
+  <link rel="stylesheet" href="{{url_for('static',filename='layui/css/layui.css')}}">
+</head>
+<body class="layui-layout-body">
+<div class="layui-layout layui-layout-admin">
+  <div class="layui-header">
+    <a href="{{ url_for('table_list') }}">
+      <div class="layui-logo">排片数据查询系统</div>
+    </a>    
+    <!-- 头部区域（可配合layui已有的水平导航） -->
+    <ul class="layui-nav layui-layout-left">
+      <li class="layui-nav-item"><a href="{{ url_for('table_list')}}">数据报表</a></li>
+    </ul>
+    <ul class="layui-nav layui-layout-right">
+      <li class="layui-nav-item">
+        <a>{{ session.usermsg }}</a>
+        <!-- <dl class="layui-nav-child">
+          <dd><a href="">基本资料</a></dd>
+          <dd><a href="">安全设置</a></dd>
+        </dl> -->
+      </li>
+      <li class="layui-nav-item"><a href="{{ url_for('login') }}">退出</a></li>
+    </ul>
+  </div>
+
+  {% block item_list %}
+
+  {% endblock item_list %}
+
+  <div class="layui-body">
+
+    {% block query_table %}
+
+    {% endblock query_table %}
+  </div>
+
+</div>
+
+<script src="//ajax.aspnetcdn.com/ajax/jQuery/jquery-3.3.1.min.js"></script>
+<!-- 登出处理 -->
+{% block script %}
+
+{% endblock script %}
+</body>
+</html>

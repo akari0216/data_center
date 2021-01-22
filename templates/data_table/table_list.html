@@ -1,0 +1,17 @@
+{% extends 'home.html' %}
+
+{% block item_list %}
+<div class="layui-side layui-bg-black">
+    <div class="layui-side-scroll">
+      <!-- 左侧导航区域（可配合layui已有的垂直导航） -->
+      <ul class="layui-nav layui-nav-tree"  lay-filter="nav-list">
+        <li class="layui-nav-item"><a id="film_total" href="{{ url_for('total_table') }}">总部数据</a></li>
+        <li class="layui-nav-item"><a id="film_center" href="{{ url_for('film_center_table') }}">排片中心</a></li>
+        <li class="layui-nav-item"><a id="film_city" href="{{ url_for('city_table') }}">同城数据</a></li>
+        <li class="layui-nav-item"><a id="film_cinema" href="{{ url_for('cinema_table') }}">影城数据</a></li>
+        <li class="layui-nav-item"><a id="film_session_detail" href="{{ url_for('session_detail_table') }}">场次明细</a></li>
+      </ul>
+    </div>
+</div>
+
+{% endblock item_list %}
