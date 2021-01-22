@@ -16,7 +16,7 @@ app.jinja_env.trim_blocks = True
 app.jinja_lstrip_block = True
 
 #数据库连接
-app.config["SQLALCHEMY_DATABASE_URI"] = "mysql://root:jy123456@localhost:3306/sjzx"
+app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://root:jy123456@localhost:3306/film_data"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db = SQLAlchemy(app)
 migrate = Migrate(app,db)
@@ -143,7 +143,7 @@ def api():
     return json.dumps(return_dict,ensure_ascii = False,cls = encoder)
 
 def sql_result(table,area_field,area_value,date,page,limit):
-    conn = pymysql.connect(host = "localhost",port = 3306,user = "root",passwd = "jy123456",db = "sjzx",charset = "utf8")
+    conn = pymysql.connect(host = "localhost",port = 3306,user = "root",passwd = "jy123456",db = "film_data",charset = "utf8")
     cursor = conn.cursor()
     length = 0
     if area_value != "":
@@ -183,7 +183,7 @@ def area_api():
 
 #返回同城或影城列表
 def sql_area_list(area_field,area_value):
-    conn = pymysql.connect(host = "localhost",port = 3306,user = "root",passwd = "jy123456",db = "sjzx",charset = "utf8")
+    conn = pymysql.connect(host = "localhost",port = 3306,user = "root",passwd = "jy123456",db = "film_data",charset = "utf8")
     cursor = conn.cursor()
     if area_field == "film_center" and area_value != "":
         cursor.execute("select distinct(city) from jycinema_info where film_center='%s'" % area_value)
