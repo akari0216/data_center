@@ -61,7 +61,14 @@ layui.use(['layer','laydate','form','table'], function(){
   document.getElementById("film_session_detail").parentElement.className += " layui-bg-green";
   
   laydate.render({
-    elem: '#test1'
+    elem: '#test1',
+    calendar:true,
+    mark:{
+      "2021-01-11":"除夕",
+      "2021-01-12":"春节",
+      "2021-01-13":"初二",
+      "2021-01-14":"初三"
+    }
   });
 
   form.render("select");
