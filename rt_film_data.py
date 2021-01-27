@@ -58,7 +58,7 @@ def get_csv_data():
 
     #限定日期序列长度，为一个月内
     for each_date in datelist:
-        if each_date < str(today + datetime.timedelta(month = 1)):
+        if each_date < str(today + datetime.timedelta(days = 15)):
             datelist2.append(each_date)
             
     ftp.quit()
@@ -187,6 +187,7 @@ def pivot_data(df,date):
             
             df_table["数据日期"] = str(date)
             df_table["获取日期"] = str(today)
+            df_table.sort_values(by = "场次",ascending = False,inplace = True)
             df_table.rename(columns = field_dict,inplace = True)
             return df_table
         
@@ -194,6 +195,7 @@ def pivot_data(df,date):
         to_sql(res1,"film_total")
         sql = "select vista_cinema_name,cinema_name,city,film_center from jycinema_info"
         sql_center_field = ["vista_cinema_name","film_center"]
+        
         res2 = arrange_film_cal(df1,["排片中心","影片"],"排片中心",sql,sql_center_field,center_list)
         to_sql(res2,"film_center")
         sql_city_field = ["vista_cinema_name","city","film_center"]
@@ -239,7 +241,7 @@ for each_table in table_list:
         cursor.execute("delete from %s where fetch_date in ('%s','%s') and op_date >= '%s'" % (each_table,yesterday,str(today),yesterday))
         set_logger.info("delete table %s fetch_date in ('%s','%s') and op_date >= '%s' completed" % (each_table,yesterday,str(today),yesterday))
 
-df_list,datelist = process_data([deal_date])
+df_list,datelist = process_data()
 for i in range(len(datelist)):
     print(datelist[i])
     pivot_data(df_list[i],datelist[i])
