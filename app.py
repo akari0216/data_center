@@ -156,7 +156,11 @@ def sql_result(table,area_field,area_value,date,page,limit):
     else:
         cursor.execute("select count(*) from %s where op_date = '%s'" % (table,date))
         length = cursor.fetchall()[0][0]
-        cursor.execute("select %s from %s where op_date = '%s' order by session desc limit %d,%d" % (fields_dict[table],table,date,(page - 1) * limit,limit))
+        if table == "film_session_detail":
+            cursor.execute("select %s from %s where op_date = '%s' limit %d,%d" % (fields_dict[table],table,date,(page - 1) * limit,limit))
+        else:
+            cursor.execute("select %s from %s where op_date = '%s' order by session desc limit %d,%d" % (fields_dict[table],table,date,(page - 1) * limit,limit))
+        
     result = cursor.fetchall()
     fields = cursor.description
     conn.close()
