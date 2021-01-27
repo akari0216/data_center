@@ -149,11 +149,11 @@ def sql_result(table,area_field,area_value,date,page,limit):
     if area_value != "":
         cursor.execute("select count(*) from %s where op_date = '%s' and %s = '%s'" % (table,date,area_field,area_value))
         length = cursor.fetchall()[0][0]
-        cursor.execute("select %s from %s where op_date = '%s'  and %s = '%s' limit %d,%d" % (fields_dict[table],table,date,area_field,area_value,(page - 1) * limit,limit))
+        cursor.execute("select %s from %s where op_date = '%s'  and %s = '%s'  order by session desc limit %d,%d" % (fields_dict[table],table,date,area_field,area_value,(page - 1) * limit,limit))
     else:
         cursor.execute("select count(*) from %s where op_date = '%s'" % (table,date))
         length = cursor.fetchall()[0][0]
-        cursor.execute("select %s from %s where op_date = '%s' limit %d,%d" % (fields_dict[table],table,date,(page - 1) * limit,limit))
+        cursor.execute("select %s from %s where op_date = '%s' order by session desc limit %d,%d" % (fields_dict[table],table,date,(page - 1) * limit,limit))
     result = cursor.fetchall()
     fields = cursor.description
     conn.close()
