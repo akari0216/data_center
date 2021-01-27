@@ -38,10 +38,6 @@ def get_csv_data(datelist):
     #加入判定条件，在20200805之前的日期需进入到reexport目录
     for each_date in datelist:
         each_date = each_date.replace("-","")
-        if each_date < "20200805":
-            ftp.cwd("reexport")
-        else:
-            ftp.cwd("/")
         #若为当天，需要再判断
         today_str = str(tyear) + str(tmonth) + str(tday)
         if each_date == today_str:
