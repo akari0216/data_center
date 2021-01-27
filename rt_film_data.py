@@ -254,5 +254,6 @@ for each_date in time_str_list:
     pivot_data(df_list[0],each_date)
 
 set_logger.info("realtime film data completed")
+print("rt film data completed %s" % deal_date)
 cursor.close()
 conn.close()
