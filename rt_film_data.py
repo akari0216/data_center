@@ -26,55 +26,46 @@ def to_sql(df,tablename):
     df.to_sql(tablename,con = conn,if_exists = "append",index = False)
 
 #获取ftp数据
-def get_csv_data(datelist):
-    df_total = pd.DataFrame()
-    time_str_list = []
-    #flag用于标记两个日期是否均大于等于当天
-    flag = 0
+def get_csv_data():
+    date = 0
+    datelist2 = []
     ftp = ftplib.FTP()
     ftp.connect(host = "172.20.240.195",port = 21 ,timeout = 30)
     ftp.login(user = "sjzx",passwd = "jy123456@")
     ftp.set_pasv(False)
-    #加入判定条件，在20200805之前的日期需进入到reexport目录
+    #判断当前时间是否属于0-6点
+    delta_now = datetime.datetime.strptime(datetime.datetime.now().strftime("%H:%M:%S"),"%H:%M:%S") - datetime.datetime.strptime("06:00:00","%H:%M:%S")
+    #如果属于6点到23点59分
+    if delta_now.days == 0:
+        date = today
+    #如果属于0点到5点59分
+    else:
+        date = today - datetime.timedelta(days = 1)
+    date = str(date).replace("-","")
+    filename = "SessionRevenue_"+ date +".csv"
+    ftplist = ftp.nlst()
+    for each_file in ftplist:
+        judge = re.match(filename,each_file)
+        if judge:
+            file_handle = open(filename,"wb+")
+            ftp.retrbinary("RETR " + filename,file_handle.write)
+            #务必要添加关闭语句，否则只有程序结束了文件才被解锁
+            file_handle.close()
+            
+            df = pd.read_csv(filename,encoding = "utf-8")
+            os.remove(filename)
+            datelist = sorted(df["场次时间"].str.slice(0,10).drop_duplicates().tolist())
+
+    #限定日期序列长度，为一个月内
     for each_date in datelist:
-        each_date = each_date.replace("-","")
-        #若为当天，需要再判断
-        today_str = str(tyear) + str(tmonth) + str(tday)
-        if each_date == today_str:
-            flag += 1
-            #判断当前时间是否属于0-6点
-            delta_now = datetime.datetime.strptime(datetime.datetime.now().strftime("%H:%M:%S"),"%H:%M:%S") - datetime.datetime.strptime("06:00:00","%H:%M:%S")
-            #如果属于6点到23点59分
-            if delta_now.days == 0:
-                each_date = today
-            #如果属于0点到5点59分
-            else:
-                each_date = today - datetime.timedelta(days = 1)
-        elif each_date > today_str:
-            flag += 1
-            each_date = today
-        if flag != 2:
-            each_date = str(each_date).replace("-","")
-            filename = "SessionRevenue_"+ each_date +".csv"
-            ftplist = ftp.nlst()
-            for each_file in ftplist:
-                judge = re.match(filename,each_file)
-                if judge:
-                    file_handle = open(filename,"wb+")
-                    ftp.retrbinary("RETR " + filename,file_handle.write)
-                    #务必要添加关闭语句，否则只有程序结束了文件才被解锁
-                    file_handle.close()
-                    
-                    df = pd.read_csv(filename,encoding = "utf-8")
-                    os.remove(filename)
-                    datelist = sorted(df["场次时间"].str.slice(0,10).drop_duplicates().tolist())
-                    df_total = pd.concat([df_total,df],ignore_index = True)
+        if each_date < str(today + datetime.timedelta(month = 1)):
+            datelist2.append(each_date)
             
     ftp.quit()
-    return df_total,datelist
+    return df,datelist2
 
 #初步处理数据
-def process_data(datelist):
+def process_data():
     df_list = []
     def data_filter(df,time1,time2):
         if len(df) != 0:
@@ -91,7 +82,7 @@ def process_data(datelist):
             df["影片"].replace(pat,"",regex = True,inplace = True)
             return df    
     
-    df,time_str_list = get_csv_data(datelist)
+    df,datelist = get_csv_data()
     #选择当天的csv文件，然后按照datelist
     for each_date in datelist:
         t1 = datetime.datetime.strptime(str(each_date) + " 06:00:00","%Y-%m-%d %H:%M:%S")
@@ -100,7 +91,7 @@ def process_data(datelist):
         each_df = data_filter(df,t1,t2)
         df_list.append(each_df)
     
-    return df_list,time_str_list
+    return df_list,datelist
 
 center_list = ["南排片中心","北排片中心"]
 city_list = ["广州同城","中山同城","佛山同城","福州同城","厦门同城","深莞同城","长沙同城","粤西同城","武汉同城","北京同城","上海同城","天津同城","杭州同城","苏州同城",\
@@ -249,9 +240,9 @@ for each_table in table_list:
         set_logger.info("delete table %s fetch_date in ('%s','%s') and op_date >= '%s' completed" % (each_table,yesterday,str(today),yesterday))
 
 df_list,datelist = process_data([deal_date])
-for each_date in datelist:
-    print(each_date)
-    pivot_data(df_list[0],each_date)
+for i in range(len(datelist)):
+    print(datelist[i])
+    pivot_data(df_list[i],datelist[i])
 
 set_logger.info("realtime film data completed")
 print("rt film data completed %s" % deal_date)
