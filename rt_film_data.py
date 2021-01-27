@@ -67,12 +67,11 @@ def get_csv_data(datelist):
                     
                     df = pd.read_csv(filename,encoding = "utf-8")
                     os.remove(filename)
-                    time_str = df["数据获取时间"].drop_duplicates().tolist()[0].replace(":","：")    
+                    datelist = sorted(df["场次时间"].str.slice(0,10).drop_duplicates().tolist())
                     df_total = pd.concat([df_total,df],ignore_index = True)
-                    time_str_list.append(time_str)
             
     ftp.quit()
-    return df_total,time_str_list
+    return df_total,datelist
 
 #初步处理数据
 def process_data(datelist):
@@ -249,8 +248,9 @@ for each_table in table_list:
         cursor.execute("delete from %s where fetch_date in ('%s','%s') and op_date >= '%s'" % (each_table,yesterday,str(today),yesterday))
         set_logger.info("delete table %s fetch_date in ('%s','%s') and op_date >= '%s' completed" % (each_table,yesterday,str(today),yesterday))
 
-df_list,time_str_list = process_data(deal_date)
-for each_date in time_str_list:
+df_list,datelist = process_data([deal_date])
+for each_date in datelist:
+    print(each_date)
     pivot_data(df_list[0],each_date)
 
 set_logger.info("realtime film data completed")
