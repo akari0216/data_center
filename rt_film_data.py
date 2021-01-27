@@ -236,7 +236,6 @@ def pivot_data(df,date):
 set_logger = get_logger("/home/log/film_data","rt_film_data")
 table_list = ["film_total","film_center","film_city","film_cinema","film_session_detail"]
 
-fetch_date = ""
 #判断专资时间
 deal_date = str(datetime.datetime.today() - datetime.timedelta(hours = 6))[:10]
 
@@ -248,12 +247,13 @@ for each_table in table_list:
     if deal_date == str(today):
         cursor.execute("delete from %s where fetch_date = '%s' and op_date >= '%s'" % (each_table,str(today),str(today)))
         set_logger.info("delete table %s fetch_date %s and op_date >= '%s' completed" % (each_table,str(today),str(today)))
+
     #否则为0-6点
     elif deal_date == yesterday:
         cursor.execute("delete from %s where fetch_date in ('%s','%s') and op_date >= '%s'" % (each_table,yesterday,str(today),yesterday))
         set_logger.info("delete table %s fetch_date in ('%s','%s') and op_date >= '%s' completed" % (each_table,yesterday,str(today),yesterday))
 
-df_list,time_str_list = process_data(datestr)
+df_list,time_str_list = process_data(deal_date)
 for each_date in time_str_list:
     pivot_data(df_list[0],each_date)
 
