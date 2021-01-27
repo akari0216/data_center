@@ -233,19 +233,19 @@ def pivot_data(df,date):
         df2.rename(columns = field_dict,inplace = True)
         to_sql(df2,"film_session_detail")
 
-set_logger = get_logger("/home/log/arrange_film","lastday_arrange_film")
+set_logger = get_logger("/home/log/film_data","lastday_film_data")
 table_list = ["film_total","film_center","film_city","film_cinema","film_session_detail"]
 #先清除昨天的历史数据
 datestr = [str(today - datetime.timedelta(days = 1))]
 conn = pymysql.connect(host = "192.168.16.114",port = 3306,user = "root",passwd = "jy123456",db = "film_data",charset = "utf8")
 cursor = conn.cursor()
 for each_table in table_list:
-    cursor.execute("delete from %s where op_date = '%s'" % (each_table,datestr[0]))
-    set_logger.info("delete table %s date %s completed" % (each_table,datestr[0]))
+    cursor.execute("delete from %s where fetch_date = '%s'" % (each_table,str(today)))
+    set_logger.info("delete table %s date %s completed" % (each_table,str(today)))
 
 df_list,time_str_list = process_data(datestr)
 pivot_data(df_list[0],datestr[0])
 print("已完成数据日期:%s" % datestr[0])
-set_logger.info("lastday arrange film data completed")
+set_logger.info("lastday film data completed")
 cursor.close()
 conn.close()
