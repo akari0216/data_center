@@ -92,7 +92,8 @@ def reorder_df(df,field_list,field):
         each_df = df[df[field].isin([each_field])]
         #按场次降序
         each_df = each_df.sort_values(by = "场次",ascending = False,inplace = True)
-        each_df = pd.DataFrame(each_df.reset_index(drop = True))
+        if len(each_df) != 0:
+            each_df = pd.DataFrame(each_df.reset_index(drop = True))
         df_total = pd.concat([df_total,each_df],ignore_index = True)
         
     return df_total
@@ -170,7 +171,8 @@ def pivot_data(df,presale_date,fetch_date):
                 df_table["场均人次"] = np.round((df_table["人次"] /df_table["场次"]),2)
                 df_table["平均票价"] = np.round((df_table["票房"] / df_table["人次"]),2)
                 df_table = df_table.sort_values(by = "场次",ascending = False,inplace = True)
-                df_table = pd.DataFrame(df_table.reset_index(drop = True))
+                if len(df_table) != 0:
+                    df_table = pd.DataFrame(df_table.reset_index(drop = True))
             
             df_table["预售日期"] = str(presale_date)
             df_table["获取日期"] = str(fetch_date)

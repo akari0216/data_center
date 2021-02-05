@@ -107,7 +107,8 @@ def reorder_df(df,field_list,field):
         each_df = df[df[field].isin([each_field])]
         #按场次降序
         each_df = each_df.sort_values(by = "场次",ascending = False,inplace = True)
-        each_df = pd.DataFrame(each_df.reset_index(drop = True))
+        if len(each_df) != 0:
+            each_df = pd.DataFrame(each_df.reset_index(drop = True))
         df_total = pd.concat([df_total,each_df],ignore_index = True)
         
     return df_total
@@ -185,12 +186,14 @@ def pivot_data(df,date):
                 df_table["场均人次"] = np.round((df_table["人次"] /df_table["场次"]),2)
                 df_table["平均票价"] = np.round((df_table["票房"] / df_table["人次"]),2)
                 df_table = df_table.sort_values(by = "场次",ascending = False,inplace = True)
-                df_table = pd.DataFrame(df_table.reset_index(drop = True))
+                if len(df_table) != 0:
+                    df_table = pd.DataFrame(df_table.reset_index(drop = True))
             
             df_table["数据日期"] = str(date)
             df_table["获取日期"] = str(today)
             df_table = df_table.sort_values(by = "场次",ascending = False,inplace = True)
-            df_table = pd.DataFrame(df_table.reset_index(drop = True))
+            if len(df_table) != 0:
+                df_table = pd.DataFrame(df_table.reset_index(drop = True))
             df_table.rename(columns = field_dict,inplace = True)
             return df_table
         
@@ -221,7 +224,8 @@ def pivot_data(df,date):
         df2["获取日期"] = str(today)
         df2 = df2.reindex(columns = ["影城","同城","排片中心","影厅","影片","场次时间","票房","人次","人均票价","座位数","上座率","场次状态","数据日期","获取日期"])
         df2 = df2.sort_values(by = ["排片中心","同城","影城","影厅","场次时间"],ascending = [False,False,False,True,True],inplace = True)
-        df2 = pd.DataFrame(df.reset_index(drop  = True))
+        if len(df2) != 0:
+            df2 = pd.DataFrame(df.reset_index(drop  = True))
         df2.rename(columns = field_dict,inplace = True)
         to_sql(df2,"film_session_detail")
 
