@@ -9,6 +9,13 @@ import pymysql
 from jinja2 import escape
 import decimal
 import datetime
+import pandas as pd
+
+from random import randrange
+from pyecharts import options as opts
+from pyecharts.charts import Bar,Line
+from pyecharts.faker import Faker
+from pyecharts import options as opts
 
 app = Flask(__name__,static_folder = "",static_url_path = "")
 app.secret_key = os.getenv("SECRET KEY","secret string")
@@ -31,6 +38,10 @@ fields_dict = {"film_total":"film,session,session_percent,people,people_percent,
             "film_cinema":"cinema,city,film_center,film,session,session_percent,people,people_percent,seats,seats_percent,bo,bo_percent,jy_ratio,arrange_film_effect,\
         arrange_film_benefit,occupancy,people_per_session,op_date",\
             "film_session_detail":"cinema,city,film_center,hall,film,session_time,bo,people,avg_price,seats,occupancy,session_status,op_date"}
+
+#字段映射2
+fields_dict2 = {"session_percent":"场次占比","people_percent":"人次占比","seats_percent":"排座占比","bo_percent":"票房占比","arrange_film_effect":"排座效率","arrange_film_benefit":"排座效益",\
+    "people_per_session":"场均人次","occupancy":"上座率","avg_price":"平均票价"}
 
 #如何转为数据存储？
 class UserAccount(db.Model):
@@ -117,6 +128,65 @@ def cinema_table():
 def session_detail_table():
     return login_verify("data_table/session_detail_table.html")
 
+#预售走势列表页面
+@app.route("/chart_list")
+def chart_list():
+    return login_verify("presale_chart/chart_list.html")
+
+@app.route("/chart_list/total_chart")
+def total_chart():
+    return login_verify("presale_chart/total_chart.html")
+
+@app.route("/chart_list/film_center_chart")
+def film_center_chart():
+    return login_verify("presale_chart/film_center_chart.html")
+
+@app.route("/chart_list/city_chart")
+def city_chart():
+    return login_verify("presale_chart/city_chart.html")
+
+@app.route("/chart_list/cinema_chart")
+def cinema_chart():
+    return login_verify("presale_chart/cinema_chart.html")
+
+#测试展示图
+def line_chart(field,fetch_date_list,data_list) -> Line:
+    line = Line()
+    line.add_xaxis(fetch_date_list)
+    for each_data in data_list:
+        line.add_yaxis(each_data[0],each_data[1],linestyle_opts = opts.LineStyleOpts(width = 1.5))
+    if field in ["session_percent","people_percent","seats_percent","bo_percent","occupancy"]:
+        line.set_global_opts(yaxis_opts = opts.AxisOpts(name= fields_dict2[field],axislabel_opts = opts.LabelOpts(formatter = "{value} %")),tooltip_opts = opts.TooltipOpts(trigger = "axis",axis_pointer_type = "cross"),\
+                datazoom_opts = opts.DataZoomOpts(range_start = 0,range_end = 100))
+    elif field == "avg_price":
+        line.set_global_opts(yaxis_opts = opts.AxisOpts(name= fields_dict2[field],axislabel_opts = opts.LabelOpts(formatter = "{value} 元")),tooltip_opts = opts.TooltipOpts(trigger = "axis",axis_pointer_type = "cross"),\
+                datazoom_opts = opts.DataZoomOpts(range_start = 0,range_end = 100))
+    else:
+        line.set_global_opts(yaxis_opts = opts.AxisOpts(name= fields_dict2[field],axislabel_opts = opts.LabelOpts(formatter = "{value}")),tooltip_opts = opts.TooltipOpts(trigger = "axis",axis_pointer_type = "cross"),\
+                datazoom_opts = opts.DataZoomOpts(range_start = 0,range_end = 100))
+
+    return line
+
+@app.route("/")
+def index():
+    return render_template("index.html")
+
+@app.route("/lineChart")
+def get_line_chart():
+    get_data = request.args.to_dict()
+    chart_table = get_data.get("chart_table")
+    field_val = get_data.get("field_val")
+    date = get_data.get("date")
+    area_field = ""
+    area_value = ""
+    if chart_table != "" and field_val != "" and date != "":
+        if "area_field" in get_data.keys() and "area_value" in get_data.keys():
+            area_field = get_data.get("area_field")
+            area_value = get_data.get("area_value")
+        fetch_date_list,data_list = sql_chart(chart_table,field_val,area_field,area_value,date)
+        c = line_chart(field_val,fetch_date_list,data_list)
+        return c.dump_options_with_quotes()
+
 #报表数据接口
 @app.route("/data/api")
 def api():
@@ -202,3 +272,29 @@ def sql_area_list(area_field,area_value):
     for each_res in result:
         res_lst.append(each_res[0])
     return res_lst
+
+#走势图数据库查询
+def sql_chart(table,field,area_field,area_value,date):
+    conn = pymysql.connect(host = "localhost",port = 3306,user = "root",passwd = "jy123456",db = "film_data",charset = "utf8")
+    sql = ""
+    if area_value == "":
+        sql = "select film,%s,fetch_date from %s where presale_date = '%s'" % (field,table,date)
+    else:
+        sql = "select film,%s,fetch_date from %s where %s = '%s' and presale_date = '%s'" % (field,table,area_field,area_value,date)
+    res = pd.read_sql(sql,conn)
+    df = pd.DataFrame(res)
+    df["fetch_date"] = df["fetch_date"].astype(str)
+    film_list = df["film"].drop_duplicates().tolist()
+    fetch_date_list = df["fetch_date"].drop_duplicates().tolist()
+    data_list = []
+
+    for each_film in film_list:
+        film_data = []
+        for each_date in fetch_date_list:
+            field_val = df[df["film"].isin([each_film]) & df["fetch_date"].isin([each_date])][field].values.tolist()
+            if len(field_val) == 0:
+                field_val.append(0)
+            film_data.append(field_val[0])
+        data_list.append([each_film,film_data])
+
+    return fetch_date_list,data_list

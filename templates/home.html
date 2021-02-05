@@ -20,7 +20,8 @@
     </a>    
     <!-- 头部区域（可配合layui已有的水平导航） -->
     <ul class="layui-nav layui-layout-left">
-      <li class="layui-nav-item"><a href="{{ url_for('table_list')}}">数据报表</a></li>
+      <li class="layui-nav-item" id="table_list"><a href="{{ url_for('table_list')}}">数据报表</a></li>
+      <li class="layui-nav-item" id="chart_list"><a href="{{ url_for('chart_list')}}">预售走势</a></li>
     </ul>
     <ul class="layui-nav layui-layout-right">
       <li class="layui-nav-item">
@@ -48,6 +49,7 @@
 </div>
 
 <script src="{{ url_for('static',filename='layui/jquery-3.3.1.min.js') }}"></script>
+<script type="text/javascript" src="{{ url_for('static',filename='layui/echarts.min.js') }}"></script>
 <!-- 登出处理 -->
 {% block script %}
 

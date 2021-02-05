@@ -26,21 +26,12 @@ def to_sql(df,tablename):
     df.to_sql(tablename,con = conn,if_exists = "append",index = False)
 
 #获取ftp数据
-def get_csv_data():
-    date = 0
-    datelist2 = []
+def get_csv_data(date):
+    df = pd.DataFrame()
     ftp = ftplib.FTP()
     ftp.connect(host = "172.20.240.195",port = 21 ,timeout = 30)
     ftp.login(user = "sjzx",passwd = "jy123456@")
     ftp.set_pasv(False)
-    #判断当前时间是否属于0-6点
-    delta_now = datetime.datetime.strptime(datetime.datetime.now().strftime("%H:%M:%S"),"%H:%M:%S") - datetime.datetime.strptime("06:00:00","%H:%M:%S")
-    #如果属于6点到23点59分
-    if delta_now.days == 0:
-        date = today
-    #如果属于0点到5点59分
-    else:
-        date = today - datetime.timedelta(days = 1)
     date = str(date).replace("-","")
     filename = "SessionRevenue_"+ date +".csv"
     ftplist = ftp.nlst()
@@ -54,18 +45,12 @@ def get_csv_data():
             
             df = pd.read_csv(filename,encoding = "utf-8")
             os.remove(filename)
-            datelist = sorted(df["场次时间"].str.slice(0,10).drop_duplicates().tolist())
-
-    #限定日期序列长度，为一个月内
-    for each_date in datelist:
-        if each_date <= str(today + datetime.timedelta(days = 15)):
-            datelist2.append(each_date)
             
     ftp.quit()
-    return df,datelist2
+    return df
 
 #初步处理数据
-def process_data():
+def process_data(datelist,fetch_date):
     df_list = []
     def data_filter(df,time1,time2):
         if len(df) != 0:
@@ -82,7 +67,7 @@ def process_data():
             df["影片"].replace(pat,"",regex = True,inplace = True)
             return df    
     
-    df,datelist = get_csv_data()
+    df = get_csv_data(fetch_date)
     #选择当天的csv文件，然后按照datelist
     for each_date in datelist:
         t1 = datetime.datetime.strptime(str(each_date) + " 06:00:00","%Y-%m-%d %H:%M:%S")
@@ -91,14 +76,14 @@ def process_data():
         each_df = data_filter(df,t1,t2)
         df_list.append(each_df)
     
-    return df_list,datelist
+    return df_list
 
 center_list = ["南排片中心","北排片中心"]
 city_list = ["广州同城","中山同城","佛山同城","福州同城","厦门同城","深莞同城","长沙同城","粤西同城","武汉同城","北京同城","上海同城","天津同城","杭州同城","苏州同城",\
              "南京同城","常州同城","重庆同城","辽宁同城","山东同城","合肥同城"]
 field_dict = {"影城":"cinema","同城":"city","排片中心":"film_center","影片":"film","场次":"session","场次占比":"session_percent","人次":"people","人次占比":"people_percent",\
               "总座位数":"seats","排座占比":"seats_percent","票房":"bo","票房占比":"bo_percent","金逸供需":"jy_ratio","排座效率":"arrange_film_effect","排座效益":"arrange_film_benefit","人均票价":"avg_price",\
-              "上座率":"occupancy","场均人次":"people_per_session","平均票价":"avg_price","数据日期":"op_date","获取日期":"fetch_date","影厅":"hall","场次时间":"session_time","场次状态":"session_status","座位数":"seats"}
+              "上座率":"occupancy","场均人次":"people_per_session","平均票价":"avg_price","预售日期":"presale_date","获取日期":"fetch_date","影厅":"hall","场次时间":"session_time","场次状态":"session_status","座位数":"seats"}
 
 #按照列表顺序重排dataframe
 def reorder_df(df,field_list,field):
@@ -116,9 +101,9 @@ def df_divide(df_field1,df_field2):
     return np.divide(df_field1,df_field2,out = np.zeros_like(df_field1),where = df_field2 != 0)
 
 #对已初步处理的数据进行透视并计算
-def pivot_data(df,date):
+def pivot_data(df,presale_date,fetch_date):
     if df is not None:
-        df = df[df["场次状态"].isin(["开启","已计划","已批准"])]
+        df = df[df["场次状态"].isin(["开启"])]
         df1 = df.copy()
         df1["场次时间"].replace(" \d\d:\d\d:\d\d","",regex = True,inplace = True)
         df2 = df.copy()
@@ -185,44 +170,27 @@ def pivot_data(df,date):
                 df_table["平均票价"] = np.round((df_table["票房"] / df_table["人次"]),2)
                 df_table = pd.DataFrame(df_table.sort_values(by = "场次",ascending = False))
             
-            df_table["数据日期"] = str(date)
-            df_table["获取日期"] = str(today)
-            df_table = pd.DataFrame(df_table.sort_values(by = "场次",ascending = False))
+            df_table["预售日期"] = str(presale_date)
+            df_table["获取日期"] = str(fetch_date)
             df_table.rename(columns = field_dict,inplace = True)
             return df_table
         
         res1 = arrange_film_cal(df1,["影片"],"总部数据")
-        to_sql(res1,"film_total")
+        to_sql(res1,"presale_film_total")
         sql = "select vista_cinema_name,cinema_name,city,film_center from jycinema_info"
         sql_center_field = ["vista_cinema_name","film_center"]
-        
         res2 = arrange_film_cal(df1,["排片中心","影片"],"排片中心",sql,sql_center_field,center_list)
-        to_sql(res2,"film_center")
+        to_sql(res2,"presale_film_center")
         sql_city_field = ["vista_cinema_name","city","film_center"]
         res3 = arrange_film_cal(df1,["同城","影片"],"同城",sql,sql_city_field,city_list)
-        to_sql(res3,"film_city")
+        to_sql(res3,"presale_film_city")
         sql_cinema_field = ["vista_cinema_name","cinema_name","city","film_center"]
         cinema_list = read_sql(sql).loc[:,"cinema_name"].tolist()
         res4 = arrange_film_cal(df1,["影城","影片"],"影城",sql,sql_cinema_field,cinema_list)
-        to_sql(res4,"film_cinema")
-        
-        df_sql = read_sql(sql)
-        sql_cinema_field = ["vista_cinema_name","cinema_name","city","film_center"]
-        df_sql = df_sql.loc[:,sql_cinema_field]
-        df2 = pd.merge(left = df2,right = df_sql,left_on = "影院",right_on = "vista_cinema_name",how = "left")
-        df2.drop(columns = ["影院"],axis = 1,inplace = True)
-        df2.rename(columns = {"cinema_name":"影城","city":"同城","film_center":"排片中心","总座位数":"座位数","人数":"人次"},inplace = True)
-        df2["人均票价"] = np.round(df_divide(df2["票房"],df2["人次"]),2)
-        df2["上座率"] = np.round(df2["人次"] / df2["座位数"] *100,2).fillna(0)
-        df2["数据日期"] = str(date)
-        df2["获取日期"] = str(today)
-        df2 = df2.reindex(columns = ["影城","同城","排片中心","影厅","影片","场次时间","票房","人次","人均票价","座位数","上座率","场次状态","数据日期","获取日期"])
-        df2 = pd.DataFrame(df2.sort_values(by = ["排片中心","同城","影城","影厅","场次时间"],ascending = [False,False,False,True,True]))
-        df2.rename(columns = field_dict,inplace = True)
-        to_sql(df2,"film_session_detail")
+        to_sql(res4,"presale_film_cinema")
 
-set_logger = get_logger("/home/log/film_data","rt_film_data")
-table_list = ["film_total","film_center","film_city","film_cinema","film_session_detail"]
+set_logger = get_logger("/home/log/film_data","rt_presale_data")
+table_list = ["presale_film_total","presale_film_center","presale_film_city","presale_film_cinema"]
 
 #判断专资时间
 deal_date = str(datetime.datetime.today() - datetime.timedelta(hours = 6))[:10]
@@ -246,7 +214,7 @@ for i in range(len(datelist)):
     print(datelist[i])
     pivot_data(df_list[i],datelist[i])
 
-set_logger.info("realtime film data completed")
-print("rt film data completed %s" % deal_date)
+set_logger.info("realtime presale data completed")
+print("rt presale data completed %s" % deal_date)
 cursor.close()
 conn.close()
