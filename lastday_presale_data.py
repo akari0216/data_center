@@ -91,8 +91,8 @@ def reorder_df(df,field_list,field):
     for each_field in field_list:
         each_df = df[df[field].isin([each_field])]
         #按场次降序
-        each_df = each_df.sort_values(by = "场次",ascending = False,inplace = True)
-        each.reset_index(drop = True,inplace = True)
+        each_df.sort_values(by = "场次",ascending = False,inplace = True)
+        each_df.reset_index(drop = True,inplace = True)
         df_total = pd.concat([df_total,each_df],ignore_index = True)
         
     return df_total

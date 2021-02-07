@@ -196,27 +196,35 @@ table_list = ["presale_film_total","presale_film_center","presale_film_city","pr
 
 #判断专资时间
 deal_date = str(datetime.datetime.today() - datetime.timedelta(hours = 6))[:10]
-
 yesterday = str(today - datetime.timedelta(days = 1))
+datestr = []
+
 conn = pymysql.connect(host = "192.168.16.114",port = 3306,user = "root",passwd = "jy123456",db = "film_data",charset = "utf8")
 cursor = conn.cursor()
+cursor.execute("select presale_date from presale_date_list where fetch_date = '%s'" % datestr[0])
+datelist =cursor.fetchall()
+datelist2 = []
+for each_date in datelist:
+    datelist2.append(str(each_date[0]))
+print(datelist2)
 for each_table in table_list:
-    #若为6-24点
-    if deal_date == str(today):
-        cursor.execute("delete from %s where fetch_date = '%s' and op_date >= '%s'" % (each_table,str(today),str(today)))
-        set_logger.info("delete table %s fetch_date %s and op_date >= '%s' completed" % (each_table,str(today),str(today)))
+    for each_date in datelist2
+        #若为6-24点
+        if deal_date == str(today):
+            cursor.execute("delete from %s where fetch_date = '%s' and presale_date = '%s'" % (each_table,str(today),each_date))
+            set_logger.info("delete table %s fetch_date = %s and presale_date = %s completed" % (each_table,str(today),each_date))
+            datestr = [str(today)]
 
-    #否则为0-6点
-    elif deal_date == yesterday:
-        cursor.execute("delete from %s where fetch_date in ('%s','%s') and op_date >= '%s'" % (each_table,yesterday,str(today),yesterday))
-        set_logger.info("delete table %s fetch_date in ('%s','%s') and op_date >= '%s' completed" % (each_table,yesterday,str(today),yesterday))
+        #否则为0-6点
+        elif deal_date == yesterday:
+            cursor.execute("delete from %s where fetch_date = '%s' and presale_date = '%s'" % (each_table,yesterday,each_date))
+            set_logger.info("delete table %s fetch_date = %s and presale_date = %s completed" % (each_table,yesterday,each_date))
+            datestr = yesterday
 
-df_list,datelist = process_data()
-for i in range(len(datelist)):
-    print(datelist[i])
-    pivot_data(df_list[i],datelist[i])
-
-set_logger.info("realtime presale data completed")
-print("rt presale data completed %s" % deal_date)
+for each_date in datelist2:
+    df_list = process_data([each_date],datestr[0])
+    pivot_data(df_list[0],each_date,datestr[0])
+    print("已完成预售日期:%s 获取日期:%s" % (each_date,datestr[0]))
+    set_logger.info("presale film data completed")
 cursor.close()
 conn.close()
