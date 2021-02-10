@@ -37,7 +37,8 @@ fields_dict = {"film_total":"film,session,session_percent,people,people_percent,
         arrange_film_benefit,occupancy,people_per_session,op_date",\
             "film_cinema":"cinema,city,film_center,film,session,session_percent,people,people_percent,seats,seats_percent,bo,bo_percent,jy_ratio,arrange_film_effect,\
         arrange_film_benefit,occupancy,people_per_session,op_date",\
-            "film_session_detail":"cinema,city,film_center,hall,film,session_time,bo,people,avg_price,seats,occupancy,session_status,op_date"}
+            "film_session_detail":"cinema,city,film_center,hall,film,session_time,bo,people,avg_price,seats,occupancy,session_status,op_date",
+            "film_session_status":"cinema,city,film_center,film,status_open,status_plan,status_approve,status_total,op_date"}
 
 #字段映射2
 fields_dict2 = {"session_percent":"场次占比","people_percent":"人次占比","seats_percent":"排座占比","bo_percent":"票房占比","arrange_film_effect":"排座效率","arrange_film_benefit":"排座效益",\
@@ -54,6 +55,11 @@ class UserMessage(db.Model):
     id = db.Column(db.Integer,primary_key = True)
     username = db.Column(db.String(length = 20))
     usermsg = db.Column(db.String(length = 20))
+
+class UpdateTimelist(db.Model):
+    id = db.Column(db.Integer,primary_key = True)
+    fetch_date = db.Column(db.Date())
+    update_time = db.Column(db.String(length = 20))
 
 #json编码转换
 class encoder(json.JSONEncoder):
@@ -124,9 +130,13 @@ def city_table():
 def cinema_table():
     return login_verify("data_table/cinema_table.html")
 
-@app.route("/table_list/sessoin_detail_table")
+@app.route("/table_list/session_detail_table")
 def session_detail_table():
     return login_verify("data_table/session_detail_table.html")
+
+@app.route("/table_list/session_status_statistic")
+def session_status_statistic():
+    return login_verify("data_table/session_status_statistic.html")
 
 #预售走势列表页面
 @app.route("/chart_list")
@@ -219,14 +229,14 @@ def sql_result(table,area_field,area_value,date,page,limit):
     if area_value != "":
         cursor.execute("select count(*) from %s where op_date = '%s' and %s = '%s'" % (table,date,area_field,area_value))
         length = cursor.fetchall()[0][0]
-        if table == "film_session_detail":
+        if table == "film_session_detail" or table == "film_session_status":
             cursor.execute("select %s from %s where op_date = '%s'  and %s = '%s' limit %d,%d" % (fields_dict[table],table,date,area_field,area_value,(page - 1) * limit,limit))
         else:
             cursor.execute("select %s from %s where op_date = '%s'  and %s = '%s' order by session desc limit %d,%d" % (fields_dict[table],table,date,area_field,area_value,(page - 1) * limit,limit))
     else:
         cursor.execute("select count(*) from %s where op_date = '%s'" % (table,date))
         length = cursor.fetchall()[0][0]
-        if table == "film_session_detail":
+        if table == "film_session_detail" or table == "film_session_status":
             cursor.execute("select %s from %s where op_date = '%s' limit %d,%d" % (fields_dict[table],table,date,(page - 1) * limit,limit))
         else:
             cursor.execute("select %s from %s where op_date = '%s' order by session desc limit %d,%d" % (fields_dict[table],table,date,(page - 1) * limit,limit))
@@ -278,9 +288,9 @@ def sql_chart(table,field,area_field,area_value,date):
     conn = pymysql.connect(host = "localhost",port = 3306,user = "root",passwd = "jy123456",db = "film_data",charset = "utf8")
     sql = ""
     if area_value == "":
-        sql = "select film,%s,fetch_date from %s where presale_date = '%s'" % (field,table,date)
+        sql = "select film,%s,fetch_date from %s where presale_date = '%s' order by id asc" % (field,table,date)
     else:
-        sql = "select film,%s,fetch_date from %s where %s = '%s' and presale_date = '%s'" % (field,table,area_field,area_value,date)
+        sql = "select film,%s,fetch_date from %s where %s = '%s' and presale_date = '%s' order by id asc" % (field,table,area_field,area_value,date)
     res = pd.read_sql(sql,conn)
     df = pd.DataFrame(res)
     df["fetch_date"] = df["fetch_date"].astype(str)
@@ -298,3 +308,9 @@ def sql_chart(table,field,area_field,area_value,date):
         data_list.append([each_film,film_data])
 
     return fetch_date_list,data_list
+
+#获取更新时间
+@app.context_processor
+def update_time():
+    time_val = UpdateTimelist.query.order_by(db.desc(UpdateTimelist.id)).first().update_time
+    return {"update_time":time_val}

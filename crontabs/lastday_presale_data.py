@@ -22,7 +22,8 @@ def read_sql(sql):
 
 #写入数据
 def to_sql(df,tablename):
-    conn = create_engine("mysql+pymysql://root:jy123456@192.168.16.114:3306/film_data?charset=utf8")
+    engine = create_engine("mysql+pymysql://root:jy123456@192.168.16.114:3306/film_data?charset=utf8")
+    conn = engine.connect()
     df.to_sql(tablename,con = conn,if_exists = "append",index = False)
 
 #获取ftp数据
@@ -174,7 +175,7 @@ def pivot_data(df,presale_date,fetch_date):
             
             df_table["预售日期"] = str(presale_date)
             df_table["获取日期"] = str(fetch_date)
-            df_table.rename(columns = field_dict,inplace = True)
+            df_table.rename(columns = field_dict,inplace = True) 
             return df_table
         
         res1 = arrange_film_cal(df1,["影片"],"总部数据")
@@ -191,14 +192,10 @@ def pivot_data(df,presale_date,fetch_date):
         res4 = arrange_film_cal(df1,["影城","影片"],"影城",sql,sql_cinema_field,cinema_list)
         to_sql(res4,"presale_film_cinema")
 
-set_logger = get_logger("/home/log/film_data","rt_presale_data")
+set_logger = get_logger("/home/log/film_data","presale_film_data")
 table_list = ["presale_film_total","presale_film_center","presale_film_city","presale_film_cinema"]
-
-#判断专资时间
-deal_date = str(datetime.datetime.today() - datetime.timedelta(hours = 6))[:10]
-yesterday = str(today - datetime.timedelta(days = 1))
-datestr = []
-
+#先清除昨天的历史数据
+datestr = [str(today)]
 conn = pymysql.connect(host = "192.168.16.114",port = 3306,user = "root",passwd = "jy123456",db = "film_data",charset = "utf8")
 cursor = conn.cursor()
 cursor.execute("select presale_date from presale_date_list where fetch_date = '%s'" % datestr[0])
@@ -208,18 +205,8 @@ for each_date in datelist:
     datelist2.append(str(each_date[0]))
 print(datelist2)
 for each_table in table_list:
-    for each_date in datelist2
-        #若为6-24点
-        if deal_date == str(today):
-            cursor.execute("delete from %s where fetch_date = '%s' and presale_date = '%s'" % (each_table,str(today),each_date))
-            set_logger.info("delete table %s fetch_date = %s and presale_date = %s completed" % (each_table,str(today),each_date))
-            datestr = [str(today)]
-
-        #否则为0-6点
-        elif deal_date == yesterday:
-            cursor.execute("delete from %s where fetch_date = '%s' and presale_date = '%s'" % (each_table,yesterday,each_date))
-            set_logger.info("delete table %s fetch_date = %s and presale_date = %s completed" % (each_table,yesterday,each_date))
-            datestr = yesterday
+    cursor.execute("delete from %s where fetch_date = '%s'" % (each_table,str(today)))
+    set_logger.info("delete table %s date %s completed" % (each_table,str(today)))
 
 for each_date in datelist2:
     df_list = process_data([each_date],datestr[0])
