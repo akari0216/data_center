@@ -248,7 +248,7 @@ for each_table in table_list:
         set_logger.info("delete table %s fetch_date in ('%s','%s') and op_date >= '%s' completed" % (each_table,yesterday,str(today),yesterday))
 
 df_list,datelist,time_str = process_data()
-df_update_time = pd.DataFrame(data = {"fetch_date":str(today),"update_time":time_str})
+df_update_time = pd.DataFrame(data = {"fetch_date":[str(today)],"update_time":[time_str]})
 to_sql(df_update_time,"update_timelist")
 for i in range(len(datelist)):
     print(datelist[i])
