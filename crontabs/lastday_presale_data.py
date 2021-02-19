@@ -195,7 +195,7 @@ def pivot_data(df,presale_date,fetch_date):
 set_logger = get_logger("/home/log/film_data","presale_film_data")
 table_list = ["presale_film_total","presale_film_center","presale_film_city","presale_film_cinema"]
 #先清除昨天的历史数据
-datestr = [str(today)]
+datestr = [str(today - datetime.timedelta(days = 1))]
 conn = pymysql.connect(host = "192.168.16.114",port = 3306,user = "root",passwd = "jy123456",db = "film_data",charset = "utf8")
 cursor = conn.cursor()
 cursor.execute("select presale_date from presale_date_list where fetch_date = '%s'" % datestr[0])
@@ -205,8 +205,8 @@ for each_date in datelist:
     datelist2.append(str(each_date[0]))
 print(datelist2)
 for each_table in table_list:
-    cursor.execute("delete from %s where fetch_date = '%s'" % (each_table,str(today)))
-    set_logger.info("delete table %s date %s completed" % (each_table,str(today)))
+    cursor.execute("delete from %s where fetch_date = '%s'" % (each_table,datestr[0]))
+    set_logger.info("delete table %s date %s completed" % (each_table,datestr[0])
 
 for each_date in datelist2:
     df_list = process_data([each_date],datestr[0])

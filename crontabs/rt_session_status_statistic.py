@@ -17,8 +17,8 @@ def read_sql(sql):
     else:
         res = pd.read_sql(sql,conn)
         df = pd.DataFrame(res)
-        conn.close()
         return df
+    conn.close()
 
 #写入数据
 def to_sql(df,tablename):
