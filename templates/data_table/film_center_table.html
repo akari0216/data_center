@@ -18,6 +18,11 @@
         <option value="北排片中心">北排片中心</option>
       </select>
     </div>
+    <label>影片</label>
+    <div class="layui-inline layui-form" id="film_se">
+      <select name="film_val" id="film_val" lay-filter="film_film">
+        <option value="">请选择</option>
+      </select>
   </div>
 </div>
 <div>
@@ -41,12 +46,14 @@ layui.use(['layer','laydate','form','table'], function(){
   document.getElementById("reset").onclick=function(){
   document.getElementById("test1").value = "";
   document.getElementById("center_val").value = "";
+  document.getElementById("film_val").value = "";
   form.render();
 }
 
   //导航选择高亮
   document.getElementById("film_center").parentElement.className += " layui-bg-green";
   
+  //日期选择器
   laydate.render({
     elem: '#test1',
     calendar:true,
@@ -55,22 +62,53 @@ layui.use(['layer','laydate','form','table'], function(){
       "2021-02-12":"春节",
       "2021-02-13":"初二",
       "2021-02-14":"初三"
+    },
+    //日期的影片列表
+    done:function(value){
+      if (value != ""){
+        $.ajax({
+          type:"get",
+          url:"/data/film/api?table=film_center&date=" + value,
+          dataType:"json",
+          success:function(d){
+            var filmlist = d.result;
+            var tmp = '<option value="">请选择</option>';
+            $("#film_val").html(tmp);
+            for (var film in filmlist){
+              tmp += '<option value="' + filmlist[film] + '">' + filmlist[film] + '</option>';
+            }
+            $("#film_val").html(tmp);
+            form.render();
+          },
+        });
+      }
     }
   });
 
   form.render("select");
-  
+
+  //若选择排片中心选择，清空影片列表
+  form.on("select(film_center)",function(data){
+    var film_center = data.value;
+    if (film_center != ""){
+      var tmp = '<option value="">请选择</option>';
+      $("#film_val").html(tmp);
+      form.render();
+    }
+  });
   form.on('submit(submit)',function(){
     var input = document.getElementById("test1");
     var date1 = input.value;
     var select = document.getElementById("center_val");
     var center_val = select.value;
+    var select2 = document.getElementById("film_val");
+    var film_val = select2.value;
     table.render({
       elem:"#table1",
       height:"full-30",
       limit:30,
       limits:[10,30,50,100],
-      url:"/data/api?table=film_center&area_field=film_center&area_value=" + center_val + "&date=" + date1,
+      url:"/data/api?table=film_center&area_field=film_center&area_value=" + center_val + "&date=" + date1 + "&film=" + film_val,
       parseData:function(res){
         return {
           "code":res.code,
@@ -85,14 +123,14 @@ layui.use(['layer','laydate','form','table'], function(){
       totalRow:true,
       cols:[[
         {field:"film_center",title:"排片中心",width:100,fixed:"left"},
-        {field:"film",title:"影片",width:150,fixed:"left",sort:true,totalRowText:"合计"},
-        {field:"session",title:"场次",width:100,totalRow:true},
+        {field:"film",title:"影片",width:150,fixed:"left",totalRowText:"合计"},
+        {field:"session",title:"场次",width:100,sort:true,totalRow:true},
         {field:"session_percent",title:"场次占比%",width:120,sort:true},
-        {field:"people",title:"人次",width:100,totalRow:true},
+        {field:"people",title:"人次",width:100,sort:true,totalRow:true},
         {field:"people_percent",title:"人次占比%",width:120,sort:true},
-        {field:"seats",title:"总座位数",width:100,totalRow:true},
+        {field:"seats",title:"总座位数",width:100,sort:true,totalRow:true},
         {field:"seats_percent",title:"排座占比%",width:120,sort:true},
-        {field:"bo",title:"票房",width:100,totalRow:true},
+        {field:"bo",title:"票房",width:100,sort:true,totalRow:true},
         {field:"bo_percent",title:"票房占比%",width:120,sort:true},
         {field:"jy_ratio",title:"金逸供需",width:100},
         {field:"arrange_film_effect",title:"排座效率",width:100},

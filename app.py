@@ -38,7 +38,9 @@ fields_dict = {"film_total":"film,session,session_percent,people,people_percent,
             "film_cinema":"cinema,city,film_center,film,session,session_percent,people,people_percent,seats,seats_percent,bo,bo_percent,jy_ratio,arrange_film_effect,\
         arrange_film_benefit,occupancy,people_per_session,op_date",\
             "film_session_detail":"cinema,city,film_center,hall,film,session_time,bo,people,avg_price,seats,occupancy,session_status,op_date",
-            "film_session_status":"cinema,city,film_center,film,status_open,status_plan,status_approve,status_total,op_date"}
+            "film_session_status":"cinema,city,film_center,film,status_open,status_plan,status_approve,status_total,op_date",
+            "red_film_data":"cinema,city,film_center,sum(red_film_session) as red_film_session",
+            "red_film_abnormal":"cinema,city,film_center,hall,film,session_time,bo,people,avg_price,seats,occupancy,session_status,op_date"}
 
 #字段映射2
 fields_dict2 = {"session_percent":"场次占比","people_percent":"人次占比","seats_percent":"排座占比","bo_percent":"票房占比","arrange_film_effect":"排座效率","arrange_film_benefit":"排座效益",\
@@ -138,6 +140,14 @@ def session_detail_table():
 def session_status_statistic():
     return login_verify("data_table/session_status_statistic.html")
 
+@app.route("/table_list/red_film_table")
+def red_film_table():
+    return login_verify("data_table/red_film_table.html")
+
+@app.route("/table_list/red_film_abnormal")
+def red_film_abnormal():
+    return login_verify("data_table/red_film_abnormal.html")
+
 #预售走势列表页面
 @app.route("/chart_list")
 def chart_list():
@@ -205,11 +215,16 @@ def api():
         return_dict["return_code"] = 504
         return_dict["return_info"] = "请求参数为空"
         return json.dumps(return_dict,ensure_ascii = False,cls = encoder)
+
+    date2 = 0
     get_data = request.args.to_dict()
     date = get_data.get("date")
     table = get_data.get("table")
+    if "date2" in get_data.keys():
+        date2 = get_data.get("date2")
     area_field = ""
     area_value = ""
+    film = ""
     page = 1
     limit = 30
     if "page" in get_data.keys() and "limit" in get_data.keys() and "table" in get_data.keys():
@@ -218,28 +233,61 @@ def api():
         if "area_field" in get_data.keys() and "area_value" in get_data.keys():
             area_field = get_data.get("area_field")
             area_value = get_data.get("area_value")
-    return_dict["result"],return_dict["total"] = sql_result(table,area_field,area_value,date,page,limit)
+        if "film" in get_data.keys():
+            film = get_data.get("film")
+    return_dict["result"],return_dict["total"] = sql_result(table,area_field,area_value,date,date2,film,page,limit)
 
     return json.dumps(return_dict,ensure_ascii = False,cls = encoder)
 
-def sql_result(table,area_field,area_value,date,page,limit):
+def sql_result(table,area_field,area_value,date,date2,film,page,limit):
     conn = pymysql.connect(host = "localhost",port = 3306,user = "root",passwd = "jy123456",db = "film_data",charset = "utf8")
     cursor = conn.cursor()
     length = 0
-    if area_value != "":
-        cursor.execute("select count(*) from %s where op_date = '%s' and %s = '%s'" % (table,date,area_field,area_value))
-        length = cursor.fetchall()[0][0]
-        if table == "film_session_detail" or table == "film_session_status":
-            cursor.execute("select %s from %s where op_date = '%s'  and %s = '%s' limit %d,%d" % (fields_dict[table],table,date,area_field,area_value,(page - 1) * limit,limit))
+    if date2 == 0:
+        if area_value != "":
+            #影片查询只对排片中心/同城作用
+            if film != "":
+                cursor.execute("select count(*) from %s where op_date = '%s' and %s = '%s' and film = '%s'" % (table,date,area_field,area_value,film))
+                length = cursor.fetchall()[0][0]
+                cursor.execute("select %s from %s where op_date = '%s' and %s = '%s' and film = '%s' limit %d,%d" % (fields_dict[table],table,date,area_field,area_value,film,(page - 1) * limit,limit))
+            else:
+                cursor.execute("select count(*) from %s where op_date = '%s' and %s = '%s'" % (table,date,area_field,area_value))
+                length = cursor.fetchall()[0][0]
+                if table == "film_session_detail" or table == "film_session_status":
+                    cursor.execute("select %s from %s where op_date = '%s'  and %s = '%s' limit %d,%d" % (fields_dict[table],table,date,area_field,area_value,(page - 1) * limit,limit))
+                else:
+                    cursor.execute("select %s from %s where op_date = '%s'  and %s = '%s' order by session desc limit %d,%d" % (fields_dict[table],table,date,area_field,area_value,(page - 1) * limit,limit))
         else:
-            cursor.execute("select %s from %s where op_date = '%s'  and %s = '%s' order by session desc limit %d,%d" % (fields_dict[table],table,date,area_field,area_value,(page - 1) * limit,limit))
+            if film != "":
+                cursor.execute("select count(*) from %s where op_date = '%s' and film = '%s'" % (table,date,film))
+                length = cursor.fetchall()[0][0]
+                cursor.execute("select %s from %s where op_date = '%s' and film = '%s' limit %d,%d" % (fields_dict[table],table,date,film,(page - 1) * limit,limit))
+            else:
+                cursor.execute("select count(*) from %s where op_date = '%s'" % (table,date))
+                length = cursor.fetchall()[0][0]
+                if table == "film_session_detail" or table == "film_session_status":
+                    cursor.execute("select %s from %s where op_date = '%s' limit %d,%d" % (fields_dict[table],table,date,(page - 1) * limit,limit))
+                else:
+                    cursor.execute("select %s from %s where op_date = '%s' order by session desc limit %d,%d" % (fields_dict[table],table,date,(page - 1) * limit,limit))
     else:
-        cursor.execute("select count(*) from %s where op_date = '%s'" % (table,date))
-        length = cursor.fetchall()[0][0]
-        if table == "film_session_detail" or table == "film_session_status":
-            cursor.execute("select %s from %s where op_date = '%s' limit %d,%d" % (fields_dict[table],table,date,(page - 1) * limit,limit))
+        if table != "red_film_data":
+            if area_value != "":
+                cursor.execute("select count(*) from %s where op_date >= '%s' and op_date <= '%s' and %s = '%s'" % (table,date,date2,area_field,area_value))
+                length = cursor.fetchall()[0][0]
+                cursor.execute("select %s from %s where op_date >= '%s' and op_date <= '%s' limit %d,%d" % (fields_dict[table],table,date,date2,(page - 1) * limit,limit))
+            else:
+                cursor.execute("select count(*) from %s where op_date >= '%s' and op_date <= '%s'" % (table,date,date2))
+                length = cursor.fetchall()[0][0]
+                cursor.execute("select %s from %s where op_date >= '%s' and op_date <= '%s' limit %d,%d" % (fields_dict[table],table,date,date2,(page - 1) * limit,limit))
         else:
-            cursor.execute("select %s from %s where op_date = '%s' order by session desc limit %d,%d" % (fields_dict[table],table,date,(page - 1) * limit,limit))
+            if area_value != "":
+                cursor.execute("select %s from %s where op_date >= '%s' and op_date <= '%s' and %s = '%s' group by cinema" % (fields_dict[table],table,date,date2,area_field,area_value))
+                length = len(cursor.fetchall())
+                cursor.execute("select %s from %s where op_date >= '%s' and op_date <= '%s' and %s = '%s' group by cinema limit %d,%d" % (fields_dict[table],table,date,date2,area_field,area_value,(page - 1) * limit,limit))
+            else:
+                cursor.execute("select %s from %s where op_date >= '%s' and op_date <= '%s' group by cinema" % (fields_dict[table],table,date,date2))
+                length = len(cursor.fetchall())
+                cursor.execute("select %s from %s where op_date >= '%s' and op_date <= '%s' group by cinema limit %d,%d" % (fields_dict[table],table,date,date2,(page - 1) * limit,limit))
         
     result = cursor.fetchall()
     fields = cursor.description
@@ -276,6 +324,42 @@ def sql_area_list(area_field,area_value):
         cursor.execute("select distinct(city) from jycinema_info where film_center='%s'" % area_value)
     elif area_field == "city" and area_value != "":
         cursor.execute("select distinct(cinema_name) from jycinema_info where city='%s' and op_status = 1" % area_value)
+    result = cursor.fetchall()
+    conn.close()
+    res_lst = []
+    for each_res in result:
+        res_lst.append(each_res[0])
+    return res_lst
+
+#影片列表查询
+@app.route("/data/film/api")
+def film_api():
+    return_dict = {"code":0,"msg":"处理成功","result":False}
+    if request.args is None:
+        return_dict["return_code"] = 504
+        return_dict["return_info"] = "请求参数为空"
+        return json.dumps(return_dict,ensure_ascii = False,cls = encoder)
+    get_data = request.args.to_dict()
+    area_field = ""
+    area_value = ""
+    date = get_data.get("date")
+    table = get_data.get("table")
+    if "area_field" in get_data.keys() and "area_value" in get_data.keys():
+        area_field = get_data.get("area_field")
+        area_value = get_data.get("area_value")
+    return_dict["result"] = sql_film_list(date,table,area_field,area_value)
+    
+    return json.dumps(return_dict,ensure_ascii = False,cls = encoder)
+
+#返回排场前10影片列表
+def sql_film_list(date,table,area_field,area_value):
+    conn = pymysql.connect(host = "localhost",port = 3306,user = "root",passwd = "jy123456",db = "film_data",charset = "utf8")
+    cursor = conn.cursor()
+    if area_value == "":
+        cursor.execute("select distinct(film) from %s where op_date = '%s' order by `session` desc limit 10" % (table,date))
+    else:
+        cursor.execute("select distinct(film) from %s where op_date = '%s' and %s = '%s' order by `session` desc limit 10" % (table,date,area_field,area_value))
+
     result = cursor.fetchall()
     conn.close()
     res_lst = []
