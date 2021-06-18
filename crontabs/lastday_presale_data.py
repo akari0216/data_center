@@ -206,7 +206,7 @@ for each_date in datelist:
 print(datelist2)
 for each_table in table_list:
     cursor.execute("delete from %s where fetch_date = '%s'" % (each_table,datestr[0]))
-    set_logger.info("delete table %s date %s completed" % (each_table,datestr[0])
+    set_logger.info("delete table %s date %s completed" % (each_table,datestr[0]))
 
 for each_date in datelist2:
     df_list = process_data([each_date],datestr[0])

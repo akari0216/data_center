@@ -40,7 +40,7 @@ fields_dict = {"film_total":"film,session,session_percent,people,people_percent,
             "film_session_detail":"cinema,city,film_center,hall,film,session_time,bo,people,avg_price,seats,occupancy,session_status,op_date",
             "film_session_status":"cinema,city,film_center,film,status_open,status_plan,status_approve,status_total,op_date",
             "red_film_data":"cinema,city,film_center,sum(red_film_session) as red_film_session",
-            "red_film_abnormal":"cinema,city,film_center,hall,film,session_time,bo,people,avg_price,seats,occupancy,session_status,op_date"}
+            "red_film_abnormal":"cinema,city,film_center,hall,film,session_time,bo,people,seats,occupancy,session_status,op_date"}
 
 #字段映射2
 fields_dict2 = {"session_percent":"场次占比","people_percent":"人次占比","seats_percent":"排座占比","bo_percent":"票房占比","arrange_film_effect":"排座效率","arrange_film_benefit":"排座效益",\

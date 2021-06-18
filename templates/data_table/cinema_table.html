@@ -103,6 +103,7 @@ layui.use(['layer','laydate','form','table'], function(){
   //获取同城和排片中心影片列表
   form.on("select(film_center)",function(data){
     var center_val = data.value;
+    var date = document.getElementById("test1").value;
     console.log(center_val);
     if (center_val != ""){
       $.ajax({
@@ -144,6 +145,7 @@ layui.use(['layer','laydate','form','table'], function(){
   //获取影城列表和同城中心影片列表
   form.on("select(film_city)",function(data){
     var city_val = data.value;
+    var date = document.getElementById("test1").value;
     console.log(city_val);
     if (city_val != ""){
       $.ajax({
