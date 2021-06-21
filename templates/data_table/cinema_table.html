@@ -124,7 +124,7 @@ layui.use(['layer','laydate','form','table'], function(){
     if (date != ""){
       $.ajax({
         type:"get",
-        url:"/data/film/api?table=film_cinema&date=" + date + "&area_field=film_center&area_value=" + center_val,
+        url:"/data/film/api?table=film_center&date=" + date + "&area_field=film_center&area_value=" + center_val,
         dataType:"json",
         success:function(d){
           var filmlist = d.result;
@@ -167,7 +167,7 @@ layui.use(['layer','laydate','form','table'], function(){
     if (date != ""){
       $.ajax({
         type:"get",
-        url:"/data/film/api?table=film_cinema&date=" + date + "&area_field=city&area_value=" + city_val,
+        url:"/data/film/api?table=film_city&date=" + date + "&area_field=city&area_value=" + city_val,
         dataType:"json",
         success:function(d){
           var filmlist = d.result;
