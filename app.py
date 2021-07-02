@@ -355,10 +355,13 @@ def film_api():
 def sql_film_list(date,table,area_field,area_value):
     conn = pymysql.connect(host = "localhost",port = 3306,user = "root",passwd = "jy123456",db = "film_data",charset = "utf8")
     cursor = conn.cursor()
+    order_val = "session"
+    if table == "film_session_status":
+        order_val = "status_total"
     if area_value == "":
-        cursor.execute("select distinct(film) from %s where op_date = '%s' order by `session` desc limit 10" % (table,date))
+        cursor.execute("select distinct(film) from %s where op_date = '%s' order by %s desc limit 10" % (table,date,order_val))
     else:
-        cursor.execute("select distinct(film) from %s where op_date = '%s' and %s = '%s' order by `session` desc limit 10" % (table,date,area_field,area_value))
+        cursor.execute("select distinct(film) from %s where op_date = '%s' and %s = '%s' order by %s desc limit 10" % (table,date,area_field,area_value,order_val))
 
     result = cursor.fetchall()
     conn.close()

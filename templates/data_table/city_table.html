@@ -157,14 +157,14 @@ layui.use(['layer','laydate','form','table'], function(){
     
     // 接口url选择
     var data_url;
-    if (city_val == ""){
+    if(center_val != ""){
       data_url = "/data/api?table=film_city&area_field=film_center&area_value=" + center_val + "&date=" + date1 + "&film=" + film_val;
-    }
-    else if (center_val == ""){
-      data_url = "/data/api?table=film_city&date=" + date1 + "&film=" + film_val;
+      if(city_val != ""){
+        data_url = "/data/api?table=film_city&area_field=city&area_value=" + city_val + "&date=" + date1 + "&film=" + film_val;    
+      }
     }
     else{
-      data_url = "/data/api?table=film_city&area_field=city&area_value=" + city_val + "&date=" + date1 + "&film=" + film_val;
+      data_url = "/data/api?table=film_city&date=" + date1 + "&film=" + film_val;
     }
 
     //渲染表格

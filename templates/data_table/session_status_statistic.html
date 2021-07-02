@@ -30,8 +30,14 @@
           <option value="">请选择</option>
         </select>
       </div>
+        <label>影片</label>
+        <div class="layui-inline layui-form" id="film_se">
+          <select name="film_val" id="film_val" lay-filter="film_film">
+            <option value="">请选择</option>
+          </select>
+        </div>
+      </div>
     </div>
-  </div>
   <div>
       <table id="table1" lay-filter="table"></table>
     </div>
@@ -54,6 +60,7 @@ layui.use(['layer','laydate','form','table'], function(){
   document.getElementById("center_val").value = "";
   document.getElementById("city_val").value = "";
   document.getElementById("cinema_val").value = "";
+  document.getElementById("film_val").value = "";
   form.render();
 }
   
@@ -68,14 +75,35 @@ layui.use(['layer','laydate','form','table'], function(){
       "2021-02-12":"春节",
       "2021-02-13":"初二",
       "2021-02-14":"初三"
+    },
+    //日期的影片列表
+    done:function(value){
+      if (value != ""){
+        $.ajax({
+          type:"get",
+          url:"/data/film/api?table=film_session_status&date=" + value,
+          dataType:"json",
+          success:function(d){
+            var filmlist = d.result;
+            var tmp = '<option value="">请选择</option>';
+            $("#film_val").html(tmp);
+            for (var film in filmlist){
+              tmp += '<option value="' + filmlist[film] + '">' + filmlist[film] + '</option>';
+            }
+            $("#film_val").html(tmp);
+            form.render();
+          },
+        });
+      }
     }
   });
 
   form.render("select");
 
-  //获取同城列表
+  //获取同城和排片中心影片列表
   form.on("select(film_center)",function(data){
     var center_val = data.value;
+    var date = document.getElementById("test1").value;
     console.log(center_val);
     if (center_val != ""){
       $.ajax({
@@ -93,12 +121,31 @@ layui.use(['layer','laydate','form','table'], function(){
         form.render();
       },
     });
+    if (date != ""){
+      $.ajax({
+        type:"get",
+        url:"/data/film/api?table=film_center&date=" + date + "&area_field=film_center&area_value=" + center_val,
+        dataType:"json",
+        success:function(d){
+          var filmlist = d.result;
+          var tmp = '<option value="">请选择</option>';
+          $("#film_val").html(tmp);
+          for (var film in filmlist){
+            tmp += '<option value="' + filmlist[film] + '">' + filmlist[film] + '</option>';
+          }
+          $("#film_val").html(tmp);
+          form.render();
+        }
+      })
+    }
+
     }
   });
 
-  //获取影城列表
+  //获取影城和影片列表
   form.on("select(film_city)",function(data){
     var city_val = data.value;
+    var date = document.getElementById("test1").value;
     console.log(city_val);
     if (city_val != ""){
       $.ajax({
@@ -117,6 +164,34 @@ layui.use(['layer','laydate','form','table'], function(){
       },
     });
     }
+    if (date != ""){
+      $.ajax({
+        type:"get",
+        url:"/data/film/api?table=film_city&date=" + date + "&area_field=city&area_value=" + city_val,
+        dataType:"json",
+        success:function(d){
+          var filmlist = d.result;
+          var tmp = '<option value="">请选择</option>';
+          $("#film_val").html(tmp);
+          for (var film in filmlist){
+            tmp += '<option value="' + filmlist[film] + '">' + filmlist[film] + '</option>';
+          }
+          $("#film_val").html(tmp);
+          form.render();
+        }
+      })
+    }
+
+  });
+
+  //若选择影城，清空影片列表
+  form.on("select(film_cinema)",function(data){
+    var cinema = data.value;
+    if (cinema != ""){
+      var tmp = '<option value="">请选择</option>';
+      $("#film_val").html(tmp);
+      form.render();
+    }
   });
 
   form.on('submit(submit)',function(){
@@ -128,20 +203,22 @@ layui.use(['layer','laydate','form','table'], function(){
     var city_val = select2.value;
     var select3 = document.getElementById("cinema_val");
     var cinema_val = select3.value;
+    var select4 = document.getElementById("film_val");
+    var film_val = select4.value;
 
     // 接口url选择
     var data_url;
-    if (cinema_val == ""){
-      data_url = "/data/api?table=film_session_status&area_field=city&area_value=" + city_val + "&date=" + date1;
-    }
-    else if (city_val == ""){
-      data_url = "/data/api?table=film_sesssion_status&area_field=film_center&area_value=" + center_val + "&date=" + date1;
-    }
-    else if (center_val == ""){
-      data_url = "/data/api?table=film_session_status&date=" + date1;
+    if(center_val != ""){
+      data_url = "/data/api?table=film_session_status&area_field=film_center&area_value=" + center_val + "&date=" + date1 + "&film=" + film_val;
+      if(city_val != ""){
+        data_url = "/data/api?table=film_session_status&area_field=city&area_value=" + city_val + "&date=" + date1 + "&film=" + film_val;
+        if(cinema_val != ""){
+          data_url = "/data/api?table=film_session_status&area_field=cinema&area_value=" + cinema_val + "&date=" + date1 + "&film=" + film_val;
+        }
+      }
     }
     else{
-      data_url = "/data/api?table=film_session_status&area_field=cinema&area_value=" + cinema_val + "&date=" + date1;
+      data_url = "/data/api?table=film_session_status&date=" + date1 + "&film=" + film_val;
     }
 
     //渲染表格
@@ -165,7 +242,7 @@ layui.use(['layer','laydate','form','table'], function(){
       defaultToolbar:["filter","exports"],
       totalRow:true,
       cols:[[
-        {field:"cinema",title:"影城",width:150,fixed:"left"},
+        {field:"cinema",title:"影城",width:180,fixed:"left"},
         {field:"city",title:"同城",width:100,fixed:"left"},
         {field:"film_center",title:"排片中心",width:100,fixed:"left"},
         {field:"film",title:"影片",width:150,fixed:"left",totalRowText:"合计"},
