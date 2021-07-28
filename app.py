@@ -40,7 +40,8 @@ fields_dict = {"film_total":"film,session,session_percent,people,people_percent,
             "film_session_detail":"cinema,city,film_center,hall,film,session_time,bo,people,avg_price,seats,occupancy,session_status,op_date",
             "film_session_status":"cinema,city,film_center,film,status_open,status_plan,status_approve,status_total,op_date",
             "red_film_data":"cinema,city,film_center,sum(red_film_session) as red_film_session",
-            "red_film_abnormal":"cinema,city,film_center,hall,film,session_time,bo,people,seats,occupancy,session_status,op_date"}
+            "red_film_abnormal":"cinema,city,film_center,hall,film,session_time,bo,people,seats,occupancy,session_status,op_date",
+            "not_open_film_cinema":"cinema,city,film_center,film,op_date"}
 
 #字段映射2
 fields_dict2 = {"session_percent":"场次占比","people_percent":"人次占比","seats_percent":"排座占比","bo_percent":"票房占比","arrange_film_effect":"排座效率","arrange_film_benefit":"排座效益",\
@@ -148,6 +149,10 @@ def red_film_table():
 def red_film_abnormal():
     return login_verify("data_table/red_film_abnormal.html")
 
+@app.route("/table_list/not_open_film_cinema.html")
+def not_open_film_cinema():
+    return login_verify("data_table/not_open_film_cinema.html")
+
 #预售走势列表页面
 @app.route("/chart_list")
 def chart_list():
@@ -243,6 +248,7 @@ def sql_result(table,area_field,area_value,date,date2,film,page,limit):
     conn = pymysql.connect(host = "localhost",port = 3306,user = "root",passwd = "jy123456",db = "film_data",charset = "utf8")
     cursor = conn.cursor()
     length = 0
+    #date2用以判断为单日期选择还是日期段选择
     if date2 == 0:
         if area_value != "":
             #影片查询只对排片中心/同城作用
@@ -253,7 +259,7 @@ def sql_result(table,area_field,area_value,date,date2,film,page,limit):
             else:
                 cursor.execute("select count(*) from %s where op_date = '%s' and %s = '%s'" % (table,date,area_field,area_value))
                 length = cursor.fetchall()[0][0]
-                if table == "film_session_detail" or table == "film_session_status":
+                if table == "film_session_detail" or table == "film_session_status" or table == "not_open_film_cinema":
                     cursor.execute("select %s from %s where op_date = '%s'  and %s = '%s' limit %d,%d" % (fields_dict[table],table,date,area_field,area_value,(page - 1) * limit,limit))
                 else:
                     cursor.execute("select %s from %s where op_date = '%s'  and %s = '%s' order by session desc limit %d,%d" % (fields_dict[table],table,date,area_field,area_value,(page - 1) * limit,limit))
@@ -265,7 +271,7 @@ def sql_result(table,area_field,area_value,date,date2,film,page,limit):
             else:
                 cursor.execute("select count(*) from %s where op_date = '%s'" % (table,date))
                 length = cursor.fetchall()[0][0]
-                if table == "film_session_detail" or table == "film_session_status":
+                if table == "film_session_detail" or table == "film_session_status" or table == "not_open_film_cinema":
                     cursor.execute("select %s from %s where op_date = '%s' limit %d,%d" % (fields_dict[table],table,date,(page - 1) * limit,limit))
                 else:
                     cursor.execute("select %s from %s where op_date = '%s' order by session desc limit %d,%d" % (fields_dict[table],table,date,(page - 1) * limit,limit))
@@ -369,6 +375,46 @@ def sql_film_list(date,table,area_field,area_value):
     for each_res in result:
         res_lst.append(each_res[0])
     return res_lst
+
+#影片模糊查询列表
+@app.route("/data/fuzzy_film/api")
+def fuzzy_film_api():
+    return_dict = {"code":0,"msg":"处理成功","result":False}
+    if request.args is None:
+        return_dict["return_code"] = 504
+        return_dict["return_info"] = "请求参数为空"
+        return json.dumps(return_dict,ensure_ascii = False,cls = encoder)
+    get_data = request.args.to_dict()
+    area_field = ""
+    area_value = ""
+    date = get_data.get("date")
+    table = get_data.get("table")
+    kw = get_data.get("kw")
+    if "area_field" in get_data.keys() and "area_value" in get_data.keys():
+        area_field = get_data.get("area_field")
+        area_value = get_data.get("area_value")
+    return_dict["result"] = sql_fuzzy_film_list(date,table,area_field,area_value,kw)
+
+    return json.dumps(return_dict,ensure_ascii = False,cls = encoder)
+
+#返回关键字模糊查询影片
+def sql_fuzzy_film_list(date,table,area_field,area_value,kw):
+    conn = pymysql.connect(host = "localhost",port = 3306,user = "root",passwd = "jy123456",db = "film_data",charset = "utf8")
+    cursor = conn.cursor()
+    if area_field == "" and area_value == "":
+        print("select distinct(film) from %s where film like '%%%s%%' and op_date = '%s'" % (table,kw,date))
+        cursor.execute("select distinct(film) from %s where film like '%%%s%%' and op_date = '%s'" % (table,kw,date))
+    elif area_field != "" and area_field != "":
+        print("select distinct(film) from %s where %s = %s and film like '%%%s%%' and op_date = '%s'" % (table,area_field,area_value,kw,date))
+        cursor.execute("select distinct(film) from %s where %s = '%s' and film like '%%%s%%' and op_date = '%s'" % (table,area_field,area_value,kw,date))
+    result = cursor.fetchall()
+    conn.close()
+    res_lst = []
+    for each_res in result:
+        res_lst.append(each_res[0])
+    print(res_lst)
+    return res_lst
+
 
 #走势图数据库查询
 def sql_chart(table,field,area_field,area_value,date):

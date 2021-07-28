@@ -80,11 +80,30 @@ def statistic_run(df,date):
         df_table2["fetch_date"] = str(today)
         to_sql(df_table2,"film_session_status")
 
+        #补充影城未开场影片
+        df_not_open_film_cinema = pd.DataFrame(columns = ["cinema","city","film_center","film"])
+        film_list = df_table2[["film"]].drop_duplicates(keep="first").tolist()
+        cinema_list = df_table2[["cinema"]].drop_duplicates(keep="first").tolist()
+        for each_cinema in cinema_list:
+            each_cinema_film_list = df_table2[df_table2["cinema"].isin([each_cinema])][["film"]].tolist()
+            for each_film in film_list:
+                #若影城影片不在总的影片列表里
+                if each_film not in each_cinema_film_list:
+                    each_df_not_open_film_cinema = df_table2[df_table2["cinema"].isin([each_cinema])][["cinema","city","film_center"]]
+                    each_df_not_open_film_cinema["film"] = each_film
+                    df_not_open_film_cinema = pd.concat([df_not_open_film_cinema,each_df_not_open_film_cinema],ignore_index=True)
+        df_not_open_film_cinema["op_date"] = date
+        df_not_open_film_cinema["fetch_date"] = str(today)
+        to_sql(df_not_open_film_cinema,"not_open_film_cinema")
+
+
 #日志
 set_logger = get_logger("/home/log/film_data","rt_session_status_statistic")
 
 #清空历史数据
 sql = "delete from film_session_status"
+read_sql(sql)
+sql = "delete from not_open_film_cinema"
 read_sql(sql)
 
 startday = str(today)
@@ -102,3 +121,4 @@ for each_date in datelist:
     statistic_run(df,each_date)
 
 set_logger.info("realtime session status statistic completed")
+set_logger.info("not open film cinema completed")
