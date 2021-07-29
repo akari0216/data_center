@@ -82,16 +82,26 @@ def statistic_run(df,date):
 
         #补充影城未开场影片
         df_not_open_film_cinema = pd.DataFrame(columns = ["cinema","city","film_center","film"])
-        film_list = df_table2[["film"]].drop_duplicates(keep="first").tolist()
-        cinema_list = df_table2[["cinema"]].drop_duplicates(keep="first").tolist()
+        film_list = df_table2["film"].drop_duplicates(keep="first").tolist()
+        #需要修改为固定的影城列表
+        cinema_list = df_table2["cinema"].drop_duplicates(keep="first").tolist()
         for each_cinema in cinema_list:
-            each_cinema_film_list = df_table2[df_table2["cinema"].isin([each_cinema])][["film"]].tolist()
+            each_cinema_film_list = df_table2[df_table2["cinema"].isin([each_cinema])]["film"].tolist()
             for each_film in film_list:
                 #若影城影片不在总的影片列表里
                 if each_film not in each_cinema_film_list:
                     each_df_not_open_film_cinema = df_table2[df_table2["cinema"].isin([each_cinema])][["cinema","city","film_center"]]
                     each_df_not_open_film_cinema["film"] = each_film
                     df_not_open_film_cinema = pd.concat([df_not_open_film_cinema,each_df_not_open_film_cinema],ignore_index=True)
+        for each_cinema in df_area["vista_cinema_name"].tolist():
+            if each_cinema not in cinema_list:
+                each_df_not_open_film_cinema = df_area[df_area["vista_cinema_name"].isin([each_cinema])]
+                each_df_not_open_film_cinema.rename(columns = {"vista_cinema_name":"cinema"},inplace=True)
+                for each_film in film_list:
+                    each_df_not_open_film_cinema["film"] = each_film
+                    df_not_open_film_cinema = pd.concat([df_not_open_film_cinema,each_df_not_open_film_cinema],ignore_index=True)
+
+        df_not_open_film_cinema.drop_duplicates(keep="first",inplace=True)
         df_not_open_film_cinema["op_date"] = date
         df_not_open_film_cinema["fetch_date"] = str(today)
         to_sql(df_not_open_film_cinema,"not_open_film_cinema")
