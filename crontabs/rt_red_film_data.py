@@ -64,6 +64,7 @@ def red_film_run(df,date):
     df_table_red_film_abnormal = pd.DataFrame()
     pat = "（.*?）\s*|\(.*?\)\s*|\s*"
     df["影片"].replace(pat,"",regex = True,inplace = True)
+    df["影片"].replace("怒火 重案","怒火·重案",inplace = True)
     df = df[df["场次状态"].isin(["开启"])]
     red_film_lst = red_film_list()
     df = df[df["影片"].isin(red_film_lst)]
@@ -96,16 +97,17 @@ def red_film_run(df,date):
             df_table_red_film = pd.concat([df_table_red_film,each_df_table_red_film],ignore_index = True)
 
     if len(df_red_film_abnormal) != 0:
-        for each_date in df_red_film_abnormal:
+        for each_date in red_film_date_list:
             each_df_red_film_abnormal = df_red_film_abnormal[df_red_film_abnormal["日期"].astype(str).isin([each_date])]
-            each_df_red_film_abnormal = each_df_red_film_abnormal[["影院","影厅","影片","场次时间","票房","人数","场次状态","总座位数","上座率"]]
-            each_df_red_film_abnormal["场次时间"]= each_df_red_film_abnormal["场次时间"].replace("\d\d\d\d-\d\d-\d\d ","",regex = True,inplace = False)
-            each_df_red_film_abnormal = pd.merge(left = each_df_red_film_abnormal,right = df_cinema_area,how = "left",left_on = "影院",right_on = "vista_cinema_name")
-            each_df_red_film_abnormal.drop(columns = ["影院","vista_cinema_name"],axis = 1,inplace = True)
-            each_df_red_film_abnormal.rename(columns = {"cinema_name":"cinema","影厅":"hall","影片":"film","场次时间":"session_time","票房":"bo","人数":"people","总座位数":"seats","上座率":"occupancy","场次状态":"session_status"},inplace = True)
-            each_df_red_film_abnormal["op_date"] = each_date
-            each_df_red_film_abnormal["fetch_date"] = today
-            df_table_red_film_abnormal = pd.concat([df_table_red_film_abnormal,each_df_red_film_abnormal],ignore_index = True)
+            if len(each_df_red_film_abnormal) != 0:
+                each_df_red_film_abnormal = each_df_red_film_abnormal[["影院","影厅","影片","场次时间","票房","人数","场次状态","总座位数","上座率"]]
+                each_df_red_film_abnormal["场次时间"]= each_df_red_film_abnormal["场次时间"].replace("\d\d\d\d-\d\d-\d\d ","",regex = True,inplace = False)
+                each_df_red_film_abnormal = pd.merge(left = each_df_red_film_abnormal,right = df_cinema_area,how = "left",left_on = "影院",right_on = "vista_cinema_name")
+                each_df_red_film_abnormal.drop(columns = ["影院","vista_cinema_name"],axis = 1,inplace = True)
+                each_df_red_film_abnormal.rename(columns = {"cinema_name":"cinema","影厅":"hall","影片":"film","场次时间":"session_time","票房":"bo","人数":"people","总座位数":"seats","上座率":"occupancy","场次状态":"session_status"},inplace = True)
+                each_df_red_film_abnormal["op_date"] = each_date
+                each_df_red_film_abnormal["fetch_date"] = today
+                df_table_red_film_abnormal = pd.concat([df_table_red_film_abnormal,each_df_red_film_abnormal],ignore_index = True)
 
     return df_table_red_film,df_table_red_film_abnormal
 

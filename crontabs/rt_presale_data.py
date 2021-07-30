@@ -65,6 +65,7 @@ def process_data(datelist,fetch_date):
             df = df[df["场次时间"].isin(timelist)]
             pat = "（.*?）\s*|\(.*?\)\s*|\s*"
             df["影片"].replace(pat,"",regex = True,inplace = True)
+            df["影片"].replace("怒火 重案","怒火·重案",inplace = True)
             return df    
     
     df = get_csv_data(fetch_date)

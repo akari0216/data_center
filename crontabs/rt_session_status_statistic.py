@@ -70,7 +70,7 @@ def statistic_run(df,date):
         df_table2["总计"] = df_table2["已批准"] + df_table2["已计划"] + df_table2["开启"]
         df_table2.columns = df_table2.columns.get_level_values(0)
         df_table2.reset_index(drop = True,inplace = True)
-        sql_area = "select vista_cinema_name,cinema_name,city,film_center from jycinema_info"
+        sql_area = "select vista_cinema_name,cinema_name,city,film_center from jycinema_info where op_status = 1"
         df_area = read_sql(sql_area)
         df_table2 = pd.merge(left = df_table2,right = df_area,left_on = "影院",right_on = "vista_cinema_name",how = "left")
         df_table2.drop(columns = ["影院"],axis = 1,inplace = True)
@@ -93,10 +93,10 @@ def statistic_run(df,date):
                     each_df_not_open_film_cinema = df_table2[df_table2["cinema"].isin([each_cinema])][["cinema","city","film_center"]]
                     each_df_not_open_film_cinema["film"] = each_film
                     df_not_open_film_cinema = pd.concat([df_not_open_film_cinema,each_df_not_open_film_cinema],ignore_index=True)
-        for each_cinema in df_area["vista_cinema_name"].tolist():
+        for each_cinema in df_area["cinema_name"].tolist():
             if each_cinema not in cinema_list:
-                each_df_not_open_film_cinema = df_area[df_area["vista_cinema_name"].isin([each_cinema])]
-                each_df_not_open_film_cinema.rename(columns = {"vista_cinema_name":"cinema"},inplace=True)
+                each_df_not_open_film_cinema = df_area[df_area["cinema_name"].isin([each_cinema])][["cinema_name","city","film_center"]]
+                each_df_not_open_film_cinema.rename(columns = {"cinema_name":"cinema"},inplace=True)
                 for each_film in film_list:
                     each_df_not_open_film_cinema["film"] = each_film
                     df_not_open_film_cinema = pd.concat([df_not_open_film_cinema,each_df_not_open_film_cinema],ignore_index=True)
