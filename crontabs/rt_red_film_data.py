@@ -64,7 +64,7 @@ def red_film_run(df,date):
     df_table_red_film_abnormal = pd.DataFrame()
     pat = "（.*?）\s*|\(.*?\)\s*|\s*"
     df["影片"].replace(pat,"",regex = True,inplace = True)
-    df["影片"].replace("怒火 重案","怒火·重案",inplace = True)
+    df["影片"].replace("怒火重案","怒火·重案",inplace = True)
     df = df[df["场次状态"].isin(["开启"])]
     red_film_lst = red_film_list()
     df = df[df["影片"].isin(red_film_lst)]

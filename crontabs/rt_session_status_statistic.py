@@ -52,6 +52,7 @@ def get_csv_data(date):
 def statistic_run(df,date):
     pat = "（.*?）\s*|\(.*?\)\s*|\s*"
     df["影片"].replace(pat,"",regex = True,inplace = True)
+    df["影片"].replace("怒火重案","怒火·重案",inplace = True)
     df["专资日期"] = (pd.to_datetime(df["场次时间"],format = "%Y-%m-%d") - datetime.timedelta(hours = 6)).astype(str).str.slice(0,10)
     df2 = df[df["专资日期"].isin([date]) & df["场次状态"].isin(["开启","已计划","已批准"])]
     if len(df2) != 0:
