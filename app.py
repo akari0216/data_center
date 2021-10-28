@@ -41,7 +41,8 @@ fields_dict = {"film_total":"film,session,session_percent,people,people_percent,
             "film_session_status":"cinema,city,film_center,film,status_open,status_plan,status_approve,status_total,op_date",
             "red_film_data":"cinema,city,film_center,sum(red_film_session) as red_film_session",
             "red_film_abnormal":"cinema,city,film_center,hall,film,session_time,bo,people,seats,occupancy,session_status,op_date",
-            "not_open_film_cinema":"cinema,city,film_center,film,op_date"}
+            "not_open_film_cinema":"cinema,city,film_center,film,op_date",
+            "predict_film_cinema":"cinema,city,film_center,film,predict_bo,predict_bo_percent,predict_date"}
 
 #字段映射2
 fields_dict2 = {"session_percent":"场次占比","people_percent":"人次占比","seats_percent":"排座占比","bo_percent":"票房占比","arrange_film_effect":"排座效率","arrange_film_benefit":"排座效益",\
@@ -173,6 +174,15 @@ def city_chart():
 @app.route("/chart_list/cinema_chart")
 def cinema_chart():
     return login_verify("presale_chart/cinema_chart.html")
+
+#票房预测
+@app.route("/predict_list")
+def predict_list():
+    return login_verify("predict_table/predict_list.html")
+
+@app.route("/predict_list/predict_cinema_table")
+def predict_cinema_table():
+    return login_verify("predict_table/predict_cinema_table.html")
 
 #测试展示图
 def line_chart(field,fetch_date_list,data_list) -> Line:
@@ -415,6 +425,58 @@ def sql_fuzzy_film_list(date,table,area_field,area_value,kw):
     print(res_lst)
     return res_lst
 
+#影片票房预测
+@app.route("/data/prdt_film/api")
+def predict_film_api():
+    return_dict = {"code":0,"msg":"处理成功","result":False}
+    if request.args is None:
+        return_dict["return_code"] = 504
+        return_dict["return_info"] = "请求参数为空"
+        return json.dumps(return_dict,ensure_ascii = False,cls = encoder)
+    get_data = request.args.to_dict()
+    area_field = ""
+    area_value = ""
+    prdt_date = get_data.get("prdt_date")
+    fetch_date = get_data.get("fetch_date")
+    table = get_data.get("table")
+    page = 1
+    limit = 30
+    if "page" in get_data.keys() and "limit" in get_data.keys() and "table" in get_data.keys():
+        page = int(get_data.get("page"))
+        limit = int(get_data.get("limit"))
+        if "area_field" in get_data.keys() and "area_value" in get_data.keys():
+            area_field = get_data.get("area_field")
+            area_value = get_data.get("area_value")
+    return_dict["result"],return_dict["total"] = sql_predict_film(prdt_date,fetch_date,table,area_field,area_value,page,limit)
+
+    return json.dumps(return_dict,ensure_ascii = False,cls = encoder)
+
+#影片预测票房查询
+def sql_predict_film(prdt_date,fetch_date,table,area_field,area_value,page,limit):
+    conn = pymysql.connect(host = "localhost",port = 3306,user = "root",passwd = "jy123456",db = "film_data",charset = "utf8")
+    cursor = conn.cursor()
+    order_val = "predict_bo_percent"
+    if area_value != "":
+        cursor.execute("select count(*) from %s where %s = '%s' and predict_date = '%s' and fetch_date = '%s'" % (table,area_field,area_value,prdt_date,fetch_date))
+        length = cursor.fetchall()[0][0]
+        cursor.execute("select %s from %s where %s = '%s' and predict_date = '%s' and fetch_date = '%s' order by %s desc limit %d,%d" % (fields_dict[table],table,area_field,area_value,prdt_date,fetch_date,order_val,(page - 1) * limit,limit))
+
+    else:
+        cursor.execute("select count(*) from %s where predict_date = '%s' and fetch_date = '%s'" % (table,prdt_date,fetch_date))
+        length = cursor.fetchall()[0][0]
+        cursor.execute("select %s from %s where predict_date = '%s' and fetch_date = '%s' order by %s desc limit %d,%d" % (fields_dict[table],table,prdt_date,fetch_date,order_val,(page - 1) * limit,limit))
+
+    result = cursor.fetchall()
+    fields = cursor.description
+    conn.close()
+    res_lst = []
+    fields_lst = []
+    for each_field in fields:
+        fields_lst.append(each_field[0])
+    for each_res in result:
+        res_lst.append(dict(zip(fields_lst,each_res)))
+    return res_lst,length
+    
 
 #走势图数据库查询
 def sql_chart(table,field,area_field,area_value,date):

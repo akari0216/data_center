@@ -78,7 +78,7 @@ def process_data():
                 delta1 = tmp_time - time1
                 delta2 = time2 - tmp_time
                 if delta1.days == 0 and delta2.days == 0:
-                    timelist.append(each_time)
+                    timelist.append(each_time)+
             df = df[df["场次时间"].isin(timelist)]
             pat = "（.*?）\s*|\(.*?\)\s*|\s*"
             df["影片"].replace(pat,"",regex = True,inplace = True)
