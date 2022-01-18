@@ -55,12 +55,12 @@ def get_csv_data():
             
             df = pd.read_csv(filename,encoding = "utf-8")
             os.remove(filename)
-            datelist = sorted(df["场次时间"].str.slice(0,10).drop_duplicates().tolist())
+            datelist = sorted(df[df["场次状态"].isin(["开启","已计划","已批准"])]["场次时间"].str.slice(0,10).drop_duplicates().tolist())
             time_str = df["数据获取时间"].drop_duplicates().tolist()[0]
 
     #限定日期序列长度，为一个月内
     for each_date in datelist:
-        if each_date <= str(today + datetime.timedelta(days = 15)):
+        if each_date <= str(today + datetime.timedelta(days = 21)):
             datelist2.append(each_date)
             
     ftp.quit()
@@ -78,7 +78,7 @@ def process_data():
                 delta1 = tmp_time - time1
                 delta2 = time2 - tmp_time
                 if delta1.days == 0 and delta2.days == 0:
-                    timelist.append(each_time)+
+                    timelist.append(each_time)
             df = df[df["场次时间"].isin(timelist)]
             pat = "（.*?）\s*|\(.*?\)\s*|\s*"
             df["影片"].replace(pat,"",regex = True,inplace = True)
@@ -150,15 +150,15 @@ def pivot_data(df,date):
                 df_table2 = pd.DataFrame(table2)
                 df_table2.rename(columns = {"上座率":"场次","人数":"人次"},inplace = True)
                 df_table = pd.merge(left = df_table2,right = df_table,how = "left",on = field_list[0])
-                df_table["场次占比"] = np.round(df_table["场次"] / df_table["总场次"] * 100,2)
-                df_table["人次占比"] = np.round(df_table["人次"] / df_table["总人次"] * 100,2)
-                df_table["排座占比"] = np.round(df_table["总座位数"] / df_table["总总座位数"] * 100,2)
-                df_table["票房占比"] = np.round(df_table["票房"] / df_table["总票房"] * 100,2)
+                df_table["场次占比"] = np.round(df_divide(df_table["场次"],df_table["总场次"]) * 100,2)
+                df_table["人次占比"] = np.round(df_divide(df_table["人次"],df_table["总人次"]) * 100,2)
+                df_table["排座占比"] = np.round(df_divide(df_table["总座位数"],df_table["总总座位数"]) * 100,2)
+                df_table["票房占比"] = np.round(df_divide(df_table["票房"],df_table["总票房"]) * 100,2)
             else:
-                df_table["场次占比"] = np.round(df_table["场次"] / df_table["场次"].sum() * 100,2)
-                df_table["人次占比"] = np.round(df_table["人次"] / df_table["人次"].sum() * 100,2)
-                df_table["排座占比"] = np.round(df_table["总座位数"] / df_table["总座位数"].sum() * 100,2)
-                df_table["票房占比"] = np.round(df_table["票房"] / df_table["票房"].sum() * 100,2)
+                df_table["场次占比"] = np.round(df_divide(df_table["场次"],df_table["场次"].sum()) * 100,2)
+                df_table["人次占比"] = np.round(df_divide(df_table["人次"],df_table["人次"].sum()) * 100,2)
+                df_table["排座占比"] = np.round(df_divide(df_table["总座位数"],df_table["总座位数"].sum()) * 100,2)
+                df_table["票房占比"] = np.round(df_divide(df_table["票房"],df_table["票房"].sum()) * 100,2)
             tmp_list = field_list.copy()
             tmp_list.extend(["场次","场次占比","人次","人次占比","总座位数","排座占比","票房","票房占比"])
             df_table = df_table.reindex(columns = tmp_list)
@@ -184,9 +184,9 @@ def pivot_data(df,date):
                     df_table = pd.DataFrame(df_table,columns = df_table_col)
                     df_table.rename(columns = {"cinema_name":"影城","city":"同城","film_center":"排片中心"},inplace = True)
             else:
-                df_table["上座率"] = np.round((df_table["人次"] / df_table["总座位数"] * 100),2)
-                df_table["场均人次"] = np.round((df_table["人次"] /df_table["场次"]),2)
-                df_table["平均票价"] = np.round((df_table["票房"] / df_table["人次"]),2)
+                df_table["上座率"] = np.round(df_divide(df_table["人次"],df_table["总座位数"]) * 100),2)
+                df_table["场均人次"] = np.round(df_divide(df_table["人次"],df_table["场次"]),2)
+                df_table["平均票价"] = np.round(df_divide(df_table["票房"],df_table["人次"]),2)
                 df_table.sort_values(by = "场次",ascending = False,inplace = True)
                 df_table.reset_index(drop = True,inplace = True)
             
@@ -219,7 +219,7 @@ def pivot_data(df,date):
         df2.drop(columns = ["影院"],axis = 1,inplace = True)
         df2.rename(columns = {"cinema_name":"影城","city":"同城","film_center":"排片中心","总座位数":"座位数","人数":"人次"},inplace = True)
         df2["人均票价"] = np.round(df_divide(df2["票房"],df2["人次"]),2)
-        df2["上座率"] = np.round(df2["人次"] / df2["座位数"] *100,2).fillna(0)
+        df2["上座率"] = np.round(df_divide(df2["人次"],df2["座位数"]) *100,2).fillna(0)
         df2["数据日期"] = str(date)
         df2["获取日期"] = str(today)
         df2 = df2.reindex(columns = ["影城","同城","排片中心","影厅","影片","场次时间","票房","人次","人均票价","座位数","上座率","场次状态","数据日期","获取日期"])
