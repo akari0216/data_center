@@ -185,9 +185,9 @@ def pivot_data(df,date):
                     df_table = pd.DataFrame(df_table,columns = df_table_col)
                     df_table.rename(columns = {"cinema_name":"影城","city":"同城","film_center":"排片中心"},inplace = True)
             else:
-                df_table["上座率"] = np.round(df_divide(df_table["人次"],df_table["总座位数"]) * 100,2)
-                df_table["场均人次"] = np.round(df_divide(df_table["人次"],df_table["场次"]),2)
-                df_table["平均票价"] = np.round(df_divide(df_table["票房"],df_table["人次"]),2)
+                df_table["上座率"] = np.round(df_divide(df_table["人次"].astype(float),df_table["总座位数"].astype(float)) * 100,2)
+                df_table["场均人次"] = np.round(df_divide(df_table["人次"].astype(float),df_table["场次"].astype(float)),2)
+                df_table["平均票价"] = np.round(df_divide(df_table["票房"].astype(float),df_table["人次"].astype(float)),2)
                 df_table.sort_values(by = "场次",ascending = False,inplace = True)
                 df_table.reset_index(drop = True,inplace = True)
             
