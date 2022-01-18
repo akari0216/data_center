@@ -6,7 +6,8 @@ import re,os
 import datetime
 from sqlalchemy import create_engine
 from logger import get_logger
-
+import warnings
+warnings.filterwarnings("ignore")
 
 today = datetime.date.today()
 tyear = today.year
@@ -155,10 +156,10 @@ def pivot_data(df,date):
                 df_table["排座占比"] = np.round(df_divide(df_table["总座位数"],df_table["总总座位数"]) * 100,2)
                 df_table["票房占比"] = np.round(df_divide(df_table["票房"],df_table["总票房"]) * 100,2)
             else:
-                df_table["场次占比"] = np.round(df_divide(df_table["场次"],df_table["场次"].sum()) * 100,2)
-                df_table["人次占比"] = np.round(df_divide(df_table["人次"],df_table["人次"].sum()) * 100,2)
-                df_table["排座占比"] = np.round(df_divide(df_table["总座位数"],df_table["总座位数"].sum()) * 100,2)
-                df_table["票房占比"] = np.round(df_divide(df_table["票房"],df_table["票房"].sum()) * 100,2)
+                df_table["场次占比"] = np.round(df_table["场次"] / df_table["场次"].sum() * 100,2)
+                df_table["人次占比"] = np.round(df_table["人次"] / df_table["人次"].sum() * 100,2)
+                df_table["排座占比"] = np.round(df_table["总座位数"] / df_table["总座位数"].sum() * 100,2)
+                df_table["票房占比"] = np.round(df_table["票房"] / df_table["票房"].sum() * 100,2)
             tmp_list = field_list.copy()
             tmp_list.extend(["场次","场次占比","人次","人次占比","总座位数","排座占比","票房","票房占比"])
             df_table = df_table.reindex(columns = tmp_list)
@@ -184,7 +185,7 @@ def pivot_data(df,date):
                     df_table = pd.DataFrame(df_table,columns = df_table_col)
                     df_table.rename(columns = {"cinema_name":"影城","city":"同城","film_center":"排片中心"},inplace = True)
             else:
-                df_table["上座率"] = np.round(df_divide(df_table["人次"],df_table["总座位数"]) * 100),2)
+                df_table["上座率"] = np.round(df_divide(df_table["人次"],df_table["总座位数"]) * 100,2)
                 df_table["场均人次"] = np.round(df_divide(df_table["人次"],df_table["场次"]),2)
                 df_table["平均票价"] = np.round(df_divide(df_table["票房"],df_table["人次"]),2)
                 df_table.sort_values(by = "场次",ascending = False,inplace = True)

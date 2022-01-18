@@ -6,7 +6,8 @@ import re,os
 import datetime
 from sqlalchemy import create_engine
 from logger import get_logger
-
+import warnings
+warnings.filterwarnings("ignore")
 
 today = datetime.date.today()
 tyear = today.year
@@ -138,10 +139,10 @@ def pivot_data(df,presale_date,fetch_date):
                 df_table["排座占比"] = np.round(df_divide(df_table["总座位数"],df_table["总总座位数"]) * 100,2)
                 df_table["票房占比"] = np.round(df_divide(df_table["票房"],df_table["总票房"]) * 100,2)
             else:
-                df_table["场次占比"] = np.round(df_divide(df_table["场次"],df_table["场次"].sum()) * 100,2)
-                df_table["人次占比"] = np.round(df_divide(df_table["人次"],df_table["人次"].sum()) * 100,2)
-                df_table["排座占比"] = np.round(df_divide(df_table["总座位数"],df_table["总座位数"].sum()) * 100,2)
-                df_table["票房占比"] = np.round(df_divide(df_table["票房"],df_table["票房"].sum()) * 100,2)
+                df_table["场次占比"] = np.round(df_table["场次"],df_table["场次"].sum() * 100,2)
+                df_table["人次占比"] = np.round(df_table["人次"],df_table["人次"].sum() * 100,2)
+                df_table["排座占比"] = np.round(df_table["总座位数"],df_table["总座位数"].sum() * 100,2)
+                df_table["票房占比"] = np.round(df_table["票房"],df_table["票房"].sum() * 100,2)
             tmp_list = field_list.copy()
             tmp_list.extend(["场次","场次占比","人次","人次占比","总座位数","排座占比","票房","票房占比"])
             df_table = df_table.reindex(columns = tmp_list)
