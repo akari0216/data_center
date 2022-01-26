@@ -15,14 +15,30 @@
 <body class="layui-layout-body">
 <div class="layui-layout layui-layout-admin">
   <div class="layui-header">
-    <a href="{{ url_for('table_list') }}">
+    {% if session["user_auth_role"] == "admin" %}
+      <a href="{{ url_for('admin.table_list') }}">
+    {% elif session["user_auth_role"] == "city" %}
+      <a href="{{ url_for('city.table_list') }}">
+    {% elif session["user_auth_role"] == "cinema" %}
+      <a href="{{ url_for('cinema.table_list') }}">
+    {% endif %}
       <div class="layui-logo">排片数据查询系统</div>
-    </a>    
+    </a>
     <!-- 头部区域（可配合layui已有的水平导航） -->
     <ul class="layui-nav layui-layout-left">
-      <li class="layui-nav-item" id="table_list"><a href="{{ url_for('table_list')}}">数据报表</a></li>
-      <li class="layui-nav-item" id="chart_list"><a href="{{ url_for('chart_list')}}">预售走势</a></li>
-      <li class="layui-nav-item" id="predict_list"><a href="{{ url_for('predict_list') }}">票房预测</a></li>
+      {% if session["user_auth_role"] == "admin" %}
+        <li class="layui-nav-item" id="table_list"><a href="{{ url_for('admin.table_list')}}">数据报表</a></li>
+        <li class="layui-nav-item" id="chart_list"><a href="{{ url_for('admin.chart_list')}}">预售走势</a></li>
+        <li class="layui-nav-item" id="predict_list"><a href="{{ url_for('admin.predict_list') }}">票房预测</a></li>
+      {% elif session["user_auth_role"] == "city" %}
+        <li class="layui-nav-item" id="table_list"><a href="{{ url_for('city.table_list')}}">数据报表</a></li>
+        <li class="layui-nav-item" id="chart_list"><a href="{{ url_for('city.chart_list')}}">预售走势</a></li>
+        <li class="layui-nav-item" id="predict_list"><a href="{{ url_for('city.predict_list') }}">票房预测</a></li>
+      {% elif session["user_auth_role"] == "cinema" %}
+        <li class="layui-nav-item" id="table_list"><a href="{{ url_for('cinema.table_list')}}">数据报表</a></li>
+        <li class="layui-nav-item" id="chart_list"><a href="{{ url_for('cinema.chart_list')}}">预售走势</a></li>
+        <li class="layui-nav-item" id="predict_list"><a href="{{ url_for('cinema.predict_list') }}">票房预测</a></li>
+      {% endif %}
     </ul>
     <ul class="layui-nav layui-layout-right">
       <li class="layui-nav-item"><a>数据更新时间：{{ update_time }}</a></li>

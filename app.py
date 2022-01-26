@@ -10,6 +10,9 @@ from jinja2 import escape
 import decimal
 import datetime
 import pandas as pd
+from blueprints.admin import admin_blue
+from blueprints.city import city_blue
+from blueprints.cinema import cinema_blue
 
 from random import randrange
 from pyecharts import options as opts
@@ -21,6 +24,9 @@ app = Flask(__name__,static_folder = "",static_url_path = "")
 app.secret_key = os.getenv("SECRET KEY","secret string")
 app.jinja_env.trim_blocks = True
 app.jinja_lstrip_block = True
+app.register_blueprint(admin_blue)
+app.register_blueprint(city_blue)
+app.register_blueprint(cinema_blue)
 
 #数据库连接
 app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://root:jy123456@localhost:3306/film_data"
@@ -59,6 +65,8 @@ class UserMessage(db.Model):
     id = db.Column(db.Integer,primary_key = True)
     username = db.Column(db.String(length = 20))
     usermsg = db.Column(db.String(length = 20))
+    user_auth_role = db.Column(db.String(length = 20))
+    user_auth_area = db.Column(db.String(length = 20))
 
 class UpdateTimelist(db.Model):
     id = db.Column(db.Integer,primary_key = True)
@@ -89,13 +97,24 @@ def login():
         passwd = data["password"]
         if UserAccount.query.filter(and_(UserAccount.username == account,UserAccount.password == passwd)).all():
             usermsg = UserMessage.query.filter(UserMessage.username == account).first().usermsg
+            user_auth_role = UserMessage.query.filter(UserMessage.username == account).first().user_auth_role
+            user_auth_area = UserMessage.query.filter(UserMessage.username == account).first().user_auth_area
             print("account",account,"passwd",passwd)
+            print("user_auth_role",user_auth_role,"user_auth_area",user_auth_area)
             session["auth"] = "authenrized"
             session["usermsg"] = usermsg
+            session["user_auth_role"] = user_auth_role
+            session["user_auth_area"] = user_auth_area
             # 以session取代账号密码
             data.pop("account")
             data.pop("password")
-            return redirect(url_for("table_list"))
+            #按权限级别划分
+            if user_auth_role == "admin":
+                return redirect(url_for("admin.table_list"))
+            elif user_auth_role == "city":
+                return redirect(url_for("city.table_list"))
+            elif user_auth_role == "cinema":
+                return redirect(url_for("cinema.table_list"))
         else:
             wrong_flag = 1
 
@@ -106,83 +125,6 @@ def login():
 def home():
     return render_template("home.html")
 
-#未登录跳转处理
-def login_verify(html):
-    if session["auth"] == "authenrized":
-        return render_template(html)
-    elif session["auth"] == "":
-        return redirect(url_for("login"))
-
-#数据查询列表页面
-@app.route("/table_list")
-def table_list():
-    return login_verify("data_table/table_list.html")
-
-@app.route("/table_list/total_table")
-def total_table():
-    return login_verify("data_table/total_table.html")
-
-@app.route("/table_list/film_center_table")
-def film_center_table():
-    return login_verify("data_table/film_center_table.html")
-
-@app.route("/table_list/city_table")
-def city_table():
-    return login_verify("data_table/city_table.html")
-
-@app.route("/table_list/cinema_table")
-def cinema_table():
-    return login_verify("data_table/cinema_table.html")
-
-@app.route("/table_list/session_detail_table")
-def session_detail_table():
-    return login_verify("data_table/session_detail_table.html")
-
-@app.route("/table_list/session_status_statistic")
-def session_status_statistic():
-    return login_verify("data_table/session_status_statistic.html")
-
-@app.route("/table_list/red_film_table")
-def red_film_table():
-    return login_verify("data_table/red_film_table.html")
-
-@app.route("/table_list/red_film_abnormal")
-def red_film_abnormal():
-    return login_verify("data_table/red_film_abnormal.html")
-
-@app.route("/table_list/not_open_film_cinema.html")
-def not_open_film_cinema():
-    return login_verify("data_table/not_open_film_cinema.html")
-
-#预售走势列表页面
-@app.route("/chart_list")
-def chart_list():
-    return login_verify("presale_chart/chart_list.html")
-
-@app.route("/chart_list/total_chart")
-def total_chart():
-    return login_verify("presale_chart/total_chart.html")
-
-@app.route("/chart_list/film_center_chart")
-def film_center_chart():
-    return login_verify("presale_chart/film_center_chart.html")
-
-@app.route("/chart_list/city_chart")
-def city_chart():
-    return login_verify("presale_chart/city_chart.html")
-
-@app.route("/chart_list/cinema_chart")
-def cinema_chart():
-    return login_verify("presale_chart/cinema_chart.html")
-
-#票房预测
-@app.route("/predict_list")
-def predict_list():
-    return login_verify("predict_table/predict_list.html")
-
-@app.route("/predict_list/predict_cinema_table")
-def predict_cinema_table():
-    return login_verify("predict_table/predict_cinema_table.html")
 
 #测试展示图
 def line_chart(field,fetch_date_list,data_list) -> Line:
@@ -201,10 +143,6 @@ def line_chart(field,fetch_date_list,data_list) -> Line:
                 datazoom_opts = opts.DataZoomOpts(range_start = 0,range_end = 100))
 
     return line
-
-@app.route("/")
-def index():
-    return render_template("index.html")
 
 @app.route("/lineChart")
 def get_line_chart():
@@ -254,6 +192,7 @@ def api():
 
     return json.dumps(return_dict,ensure_ascii = False,cls = encoder)
 
+#sql数据查询器
 def sql_result(table,area_field,area_value,date,date2,film,page,limit):
     conn = pymysql.connect(host = "localhost",port = 3306,user = "root",passwd = "jy123456",db = "film_data",charset = "utf8")
     cursor = conn.cursor()
@@ -313,10 +252,13 @@ def sql_result(table,area_field,area_value,date,date2,film,page,limit):
     for each_field in fields:
         fields_lst.append(each_field[0])
     for each_res in result:
-        res_lst.append(dict(zip(fields_lst,each_res)))
+        each_res = user_auth_area_data_filter(each_res)
+        if each_res is not None:
+            res_lst.append(dict(zip(fields_lst,each_res)))
     return res_lst,length
     
 
+#区域划分api
 @app.route("/data/area/api")
 def area_api():
     return_dict = {"code":0,"msg":"处理成功","result":False}
@@ -407,6 +349,7 @@ def fuzzy_film_api():
 
     return json.dumps(return_dict,ensure_ascii = False,cls = encoder)
 
+#注意权限分配
 #返回关键字模糊查询影片
 def sql_fuzzy_film_list(date,table,area_field,area_value,kw):
     conn = pymysql.connect(host = "localhost",port = 3306,user = "root",passwd = "jy123456",db = "film_data",charset = "utf8")
@@ -422,7 +365,6 @@ def sql_fuzzy_film_list(date,table,area_field,area_value,kw):
     res_lst = []
     for each_res in result:
         res_lst.append(each_res[0])
-    print(res_lst)
     return res_lst
 
 #影片票房预测
@@ -451,6 +393,7 @@ def predict_film_api():
 
     return json.dumps(return_dict,ensure_ascii = False,cls = encoder)
 
+#注意权限分配
 #影片预测票房查询
 def sql_predict_film(prdt_date,fetch_date,table,area_field,area_value,page,limit):
     conn = pymysql.connect(host = "localhost",port = 3306,user = "root",passwd = "jy123456",db = "film_data",charset = "utf8")
@@ -474,18 +417,23 @@ def sql_predict_film(prdt_date,fetch_date,table,area_field,area_value,page,limit
     for each_field in fields:
         fields_lst.append(each_field[0])
     for each_res in result:
-        res_lst.append(dict(zip(fields_lst,each_res)))
+        each_res = user_auth_area_data_filter(each_res)
+        if each_res != None:
+            res_lst.append(dict(zip(fields_lst,each_res)))
     return res_lst,length
     
 
-#走势图数据库查询
+#走势图数据查询
 def sql_chart(table,field,area_field,area_value,date):
     conn = pymysql.connect(host = "localhost",port = 3306,user = "root",passwd = "jy123456",db = "film_data",charset = "utf8")
     sql = ""
     if area_value == "":
         sql = "select film,%s,fetch_date from %s where presale_date = '%s' order by id asc" % (field,table,date)
     else:
-        sql = "select film,%s,fetch_date from %s where %s = '%s' and presale_date = '%s' order by id asc" % (field,table,area_field,area_value,date)
+        if session["user_auth_role"] == "city":
+            sql = "select film,%s,fetch_date from %s where %s = '%s' and city = '%s' and presale_date = '%s' order by id asc" % (field,table,area_field,area_value,session["user_auth_area"],date)
+        elif session["user_auth_role"] == "cinema":
+            sql = "select film,%s,fetch_date from %s where %s = '%s' and cinema = '%s' and presale_date = '%s' order by id asc" % (field,table,area_field,area_value,session["user_auth_area"],date)
     res = pd.read_sql(sql,conn)
     df = pd.DataFrame(res)
     df["fetch_date"] = df["fetch_date"].astype(str)
@@ -509,3 +457,14 @@ def sql_chart(table,field,area_field,area_value,date):
 def update_time():
     time_val = UpdateTimelist.query.order_by(db.desc(UpdateTimelist.id)).first().update_time
     return {"update_time":time_val}
+
+#数据查询过滤器
+def user_auth_area_data_filter(each_data):
+    if session["user_auth_area"] == "admin":
+        return each_data
+    else:
+        if session["user_auth_area"] in each_data:
+            return each_data
+        else:
+            return None
+    

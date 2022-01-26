@@ -84,6 +84,7 @@ def process_data():
             pat = "（.*?）\s*|\(.*?\)\s*|\s*"
             df["影片"].replace(pat,"",regex = True,inplace = True)
             df["影片"].replace("怒火重案","怒火·重案",inplace = True)
+            df["影片"].replace("▪","·",inplace = True)
             return df    
     
     df,datelist,time_str = get_csv_data()
@@ -122,7 +123,7 @@ def df_divide(df_field1,df_field2):
 
 #对已初步处理的数据进行透视并计算
 def pivot_data(df,date):
-    if df is not None:
+    if len(df) != 0:
         df = df[df["场次状态"].isin(["开启","已计划","已批准"])]
         df1 = df.copy()
         df1["场次时间"].replace(" \d\d:\d\d:\d\d","",regex = True,inplace = True)

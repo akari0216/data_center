@@ -67,6 +67,7 @@ def process_data(datelist,fetch_date):
             pat = "（.*?）\s*|\(.*?\)\s*|\s*"
             df["影片"].replace(pat,"",regex = True,inplace = True)
             df["影片"].replace("怒火重案","怒火·重案",inplace = True)
+            df["影片"].replace("▪","·",inplace = True)
             return df    
     
     df = get_csv_data(fetch_date)
@@ -139,14 +140,14 @@ def pivot_data(df,presale_date,fetch_date):
                 df_table["排座占比"] = np.round(df_divide(df_table["总座位数"].astype(float),df_table["总总座位数"].astype(float)) * 100,2)
                 df_table["票房占比"] = np.round(df_divide(df_table["票房"].astype(float),df_table["总票房"].astype(float)) * 100,2)
             else:
-                df_table["场次占比"] = np.round(df_table["场次"],df_table["场次"].sum() * 100,2)
-                df_table["人次占比"] = np.round(df_table["人次"],df_table["人次"].sum() * 100,2)
-                df_table["排座占比"] = np.round(df_table["总座位数"],df_table["总座位数"].sum() * 100,2)
-                df_table["票房占比"] = np.round(df_table["票房"],df_table["票房"].sum() * 100,2)
+                df_table["场次占比"] = np.round(df_table["场次"] / df_table["场次"].sum() * 100,2)
+                df_table["人次占比"] = np.round(df_table["人次"] / df_table["人次"].sum() * 100,2)
+                df_table["排座占比"] = np.round(df_table["总座位数"] / df_table["总座位数"].sum() * 100,2)
+                df_table["票房占比"] = np.round(df_table["票房"] / df_table["票房"].sum() * 100,2)
             tmp_list = field_list.copy()
             tmp_list.extend(["场次","场次占比","人次","人次占比","总座位数","排座占比","票房","票房占比"])
             df_table = df_table.reindex(columns = tmp_list)
-            df_table["金逸供需"] = np.round(df_divide(df_table["票房占比"].astype(float),df_table["场次占比".astype(float)]),2)
+            df_table["金逸供需"] = np.round(df_divide(df_table["票房占比"].astype(float),df_table["场次占比"].astype(float)),2)
             df_table["排座效率"] = np.round(df_divide(df_table["人次占比"].astype(float),df_table["排座占比"].astype(float)),2)
             df_table["排座效益"] = np.round(df_divide(df_table["票房占比"].astype(float),df_table["排座占比"].astype(float)),2)
             if len(field_list) != 1:

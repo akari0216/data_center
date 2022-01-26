@@ -71,7 +71,7 @@ def film_session(top_film=3,add_date=[]):
     df_total.rename(columns = field_dict,inplace = True)    
     print(df_total)
     file_name = "实时影城未排影片表.xlsx"
-    df_total.to_excel(file_name)
+    df_total.to_excel(file_name,index=False)
     return file_name
 
 

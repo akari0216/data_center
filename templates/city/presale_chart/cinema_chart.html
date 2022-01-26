@@ -1,0 +1,153 @@
+{% extends 'city/presale_chart/chart_list.html' %}
+
+{% block query_table %}
+<!-- 内容主体区域 -->
+<div class="layui-form-item" lay-filter="test">
+    <div class="layui-input-block">
+      <label>预售日期</label>
+      <div class="layui-inline">
+        <input type="text" class="layui-input" id="test1" lay-filter="laydate" autocomplete="off">
+      </div>
+      <button class="layui-btn" lay-submit lay-filter="submit">查询</button>
+      <button id="reset" class="layui-btn">重置</button>
+      <label>排片中心</label>
+      <div class="layui-inline layui-form" id="center_se">
+        <select name="center_val" id="center_val" lay-filter="film_center">
+          <option value="">请选择</option>
+          <option value="南排片中心">南排片中心</option>
+          <option value="北排片中心">北排片中心</option>
+        </select>
+      </div>
+      <label>同城</label>
+      <div class="layui-inline layui-form" id="city_se">
+        <select name="city_val" id="city_val" lay-filter="film_city">
+          <option value="">请选择</option>
+        </select>
+      </div>
+      <label>影城</label>
+      <div class="layui-inline layui-form" id="cinema_se">
+        <select name="cinema_val" id="cinema_val" lay-filter="film_cinema">
+          <option value="">请选择</option>
+        </select>
+      </div>
+      <label>指标</label>
+      <div class="layui-inline layui-form" id="field_se" lay-filter="field_se" style="width:130px;">
+        <select name="field_val" id="field_val">
+          <option value="">请选择</option>
+          <option value="session_percent">场次占比</option>
+          <option value="people_percent">人次占比</option>
+          <option value="seats_percent">排座占比</option>
+          <option value="bo_percent">票房占比</option>
+          <option value="arrange_film_effect">排座效率</option>
+          <option value="arrange_film_benefit">排座效益</option>
+          <option value="occupancy">上座率</option>
+          <option value="people_per_session">场均人次</option>
+          <option value="avg_price">平均票价</option>
+        </select>
+      </div>
+    </div>
+  </div>
+  <div id="chart1" lay-filter="chart1" style="width:1400px; height:600px;left:10px;top:10px"></div>
+{% endblock query_table %}
+
+{% block script %}
+<script src="{{ url_for('static', filename='layui/layui.js') }}"></script>
+
+<script>
+//JavaScript代码区域
+layui.use(['form','laydate'],function(){
+    var form = layui.form,
+    laydate = layui.laydate;
+
+    //重置键
+    document.getElementById("reset").onclick=function(){
+    document.getElementById("test1").value = "";
+    document.getElementById("center_val").value = "";
+    document.getElementById("city_val").value = "";
+    document.getElementById("cinema_val").value = "";
+    document.getElementById("field_val").value = "";
+    form.render();
+  }
+
+    //导航选择高亮
+    document.getElementById("film_cinema").parentElement.className += " layui-bg-green";
+
+    laydate.render({
+    elem: '#test1',
+    calendar:true,
+    mark:{
+      "2021-02-11":"除夕",
+      "2021-02-12":"春节",
+      "2021-02-13":"初二",
+      "2021-02-14":"初三"
+    }
+  });
+
+    //获取同城列表
+    form.on("select(film_center)",function(data){
+        var center_val = data.value;
+        console.log(center_val);
+        if (center_val != ""){
+        $.ajax({
+        type:"get",
+        url:"/data/area/api?area_field=film_center&area_value=" + center_val,
+        dataType:"json",
+        success:function(d){
+            var citylist = d.result;
+            var tmp = '<option value="">请选择</option>';
+            $("#city_val").html(tmp);
+            for (var city in citylist){
+            tmp += '<option value="' + citylist[city] + '">' + citylist[city] + '</option>';
+            }
+            $("#city_val").html(tmp);
+            form.render();
+        },
+        });
+        }
+    });
+
+    //获取影城列表
+    form.on("select(film_city)",function(data){
+        var city_val = data.value;
+        console.log(city_val);
+        if (city_val != ""){
+        $.ajax({
+        type:"get",
+        url:"/data/area/api?area_field=city&area_value=" + city_val,
+        dataType:"json",
+        success:function(d){
+            var cinemalist = d.result;
+            var tmp = '<option value="">请选择</option>';
+            $("#cinema_val").html(tmp);
+            for (var cinema in cinemalist){
+            tmp += '<option value="' + cinemalist[cinema] + '">' + cinemalist[cinema] + '</option>';
+            }
+            $("#cinema_val").html(tmp);
+            form.render();
+        },
+        });
+        }
+    });
+    // 图表渲染
+    form.on('submit(submit)',function(){
+        var input = document.getElementById("test1");
+        var date1 = input.value;
+        var select1 = document.getElementById("cinema_val");
+        var cinema_val = select1.value;
+        var select2 = document.getElementById("field_val");
+        var field_val = select2.value;
+        var chart = echarts.init(document.getElementById('chart1'), 'white', {renderer: 'canvas'});
+        if (cinema_val != ""){
+            $.ajax({
+            type: "GET",
+            url: "/lineChart?chart_table=presale_film_cinema&field_val=" + field_val + "&area_field=cinema&area_value=" + cinema_val + "&date=" + date1,
+            dataType: 'json',
+            success: function (result) {
+                chart.setOption(result,notMerge = true);
+            }
+        });
+        }
+    });
+});
+</script>
+{% endblock script %}
