@@ -29,6 +29,10 @@ def session_status_statistic():
 def not_open_film_cinema():
     return login_verify("cinema/data_table/not_open_film_cinema.html")
 
+@cinema_blue.route("/table_list/data_table/maoyan_presale_price")
+def maoyan_presale_price():
+    return login_verify("cinema/data_table/maoyan_presale_price.html")
+
 #预售走势列表页面
 @cinema_blue.route("/chart_list")
 def chart_list():

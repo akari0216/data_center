@@ -319,7 +319,10 @@ def sql_film_list(date,table,area_field,area_value):
     if area_value == "":
         cursor.execute("select distinct(film) from %s where op_date = '%s' order by %s desc limit 10" % (table,date,order_val))
     else:
-        cursor.execute("select distinct(film) from %s where op_date = '%s' and %s = '%s' order by %s desc limit 10" % (table,date,area_field,area_value,order_val))
+        if table == "maoyan_presale_price":
+            cursor.execute("select distinct(movie_name) from %s where show_date = '%s' and jycinema_name = '%s'" % (table,date,area_value))
+        else:
+            cursor.execute("select distinct(film) from %s where op_date = '%s' and %s = '%s' order by %s desc limit 10" % (table,date,area_field,area_value,order_val))
 
     result = cursor.fetchall()
     conn.close()
@@ -451,6 +454,108 @@ def sql_chart(table,field,area_field,area_value,date):
         data_list.append([each_film,film_data])
 
     return fetch_date_list,data_list
+
+#猫眼预售票价
+@app.route("/data/my_presale/api")
+def my_presale_api():
+    return_dict = {"code":0,"msg":"处理成功","result":False}
+    if request.args is None:
+        return_dict["return_code"] = 504
+        return_dict["return_info"] = "请求参数为空"
+        return json.dumps(return_dict,ensure_ascii = False,cls = encoder)
+    get_data = request.args.to_dict()
+    area_field = ""
+    area_value = ""
+    show_date = get_data.get("show_date")
+    begin_time = get_data.get("begin_time")
+    end_time = get_data.get("end_time")
+    movie_name = get_data.get("movie_name")
+    table = get_data.get("table")
+    page = 1
+    limit = 30
+    if "page" in get_data.keys() and "limit" in get_data.keys() and "table" in get_data.keys():
+        page = int(get_data.get("page"))
+        limit = int(get_data.get("limit"))
+        if "area_field" in get_data.keys() and "area_value" in get_data.keys():
+            area_field = get_data.get("area_field")
+            area_value = get_data.get("area_value")
+    return_dict["result"],return_dict["total"] = sql_maoyan_presale(show_date,begin_time,end_time,movie_name,table,area_field,area_value,page,limit)
+
+    return json.dumps(return_dict,ensure_ascii = False,cls = encoder)
+
+#注意权限分配
+#猫眼预售票价查询
+def sql_maoyan_presale(show_date,begin_time,end_time,movie_name,table,area_field,area_value,page,limit):
+    conn = pymysql.connect(host = "localhost",port = 3306,user = "root",passwd = "jy123456",db = "film_data",charset = "utf8")
+    cursor = conn.cursor()
+    #仅限于对影城进行查询
+    if area_field == "cinema":
+        if movie_name == "":
+            if begin_time != "" and end_time != "":
+                cursor.execute("select count(*) from %s where jycinema_name = '%s' and show_date = '%s' and show_time >= '%s' and show_time <= '%s'" % (table,area_value,show_date,begin_time,end_time))
+                length = cursor.fetchall()[0][0]
+                cursor.execute("select jycinema_name,compete_cinema_name,compete_relation,city,film_center,movie_name,show_date,show_time,price,sold_count,hall_name,seats,version \
+                    from %s where jycinema_name = '%s' and show_date = '%s' and show_time >= '%s' and show_time <= '%s' order by show_time asc limit %d,%d" % \
+                    (table,area_value,show_date,begin_time,end_time,(page - 1)*limit,limit))
+            elif begin_time != "" and end_time == "":
+                cursor.execute("select count(*) from %s where jycinema_name = '%s' and show_date = '%s' and show_time >= '%s'" % (table,area_value,show_date,begin_time))
+                length = cursor.fetchall()[0][0]
+                cursor.execute("select jycinema_name,compete_cinema_name,compete_relation,city,film_center,movie_name,show_date,show_time,price,sold_count,hall_name,seats,version \
+                    from %s where jycinema_name = '%s' and show_date = '%s' and show_time >= '%s' order by show_time asc limit %d,%d" % \
+                    (table,area_value,show_date,begin_time,(page - 1)*limit,limit))
+            elif begin_time == "" and end_time != "":
+                cursor.execute("select count(*) from %s where jycinema_name = '%s' and show_date = '%s' and show_time <= '%s'" % (table,area_value,show_date,end_time))
+                length = cursor.fetchall()[0][0]
+                cursor.execute("select jycinema_name,compete_cinema_name,compete_relation,city,film_center,movie_name,show_date,show_time,price,sold_count,hall_name,seats,version \
+                    from %s where jycinema_name = '%s' and show_date = '%s' and show_time <= '%s' order by show_time asc limit %d,%d" % \
+                    (table,area_value,show_date,end_time,(page - 1)*limit,limit))
+            elif begin_time == "" and end_time == "":
+                cursor.execute("select count(*) from %s where jycinema_name = '%s' and show_date = '%s'" % (table,area_value,show_date))
+                length = cursor.fetchall()[0][0]
+                cursor.execute("select jycinema_name,compete_cinema_name,compete_relation,city,film_center,movie_name,show_date,show_time,price,sold_count,hall_name,seats,version \
+                    from %s where jycinema_name = '%s' and show_date = '%s' order by show_time asc limit %d,%d" % \
+                    (table,area_value,show_date,(page - 1)*limit,limit))
+        elif movie_name != "":
+            if begin_time != "" and end_time != "":
+                cursor.execute("select count(*) from %s where jycinema_name = '%s' and movie_name = '%s' and show_date = '%s' and show_time >= '%s' and show_time <= '%s'" %\
+                     (table,area_value,movie_name,show_date,begin_time,end_time))
+                length = cursor.fetchall()[0][0]
+                cursor.execute("select jycinema_name,compete_cinema_name,compete_relation,city,film_center,movie_name,show_date,show_time,price,sold_count,hall_name,seats,version \
+                    from %s where jycinema_name = '%s' and movie_name = '%s' and show_date = '%s' and show_time >= '%s' and show_time <= '%s' order by show_time asc limit %d,%d" % \
+                    (table,area_value,movie_name,show_date,begin_time,end_time,(page - 1)*limit,limit))
+            elif begin_time != "" and end_time == "":
+                cursor.execute("select count(*) from %s where jycinema_name = '%s' and movie_name = '%s' and show_date = '%s' and show_time >= '%s'" % \
+                    (table,area_value,movie_name,show_date,begin_time))
+                length = cursor.fetchall()[0][0]
+                cursor.execute("select jycinema_name,compete_cinema_name,compete_relation,city,film_center,movie_name,show_date,show_time,price,sold_count,hall_name,seats,version \
+                    from %s where jycinema_name = '%s' and movie_name = '%s' and show_date = '%s' and show_time >= '%s' order by show_time asc limit %d,%d" % \
+                    (table,area_value,movie_name,show_date,begin_time,(page - 1)*limit,limit))
+            elif begin_time == "" and end_time != "":
+                cursor.execute("select count(*) from %s where jycinema_name = '%s' and movie_name = '%s' and show_date = '%s' and show_time <= '%s'" % (table,area_value,movie_name,show_date,end_time))
+                length = cursor.fetchall()[0][0]
+                cursor.execute("select jycinema_name,compete_cinema_name,compete_relation,city,film_center,movie_name,show_date,show_time,price,sold_count,hall_name,seats,version \
+                    from %s where jycinema_name = '%s' and movie_name = '%s' and show_date = '%s' and show_time <= '%s' order by show_time asc limit %d,%d" % \
+                    (table,area_value,movie_name,show_date,end_time,(page - 1)*limit,limit))
+            elif begin_time == "" and end_time == "":
+                cursor.execute("select count(*) from %s where jycinema_name = '%s' and movie_name = '%s' and show_date = '%s'" % (table,area_value,movie_name,show_date))
+                length = cursor.fetchall()[0][0]
+                cursor.execute("select jycinema_name,compete_cinema_name,compete_relation,city,film_center,movie_name,show_date,show_time,price,sold_count,hall_name,seats,version \
+                    from %s where jycinema_name = '%s' and movie_name = '%s' and show_date = '%s' order by show_time asc limit %d,%d" % \
+                    (table,area_value,movie_name,show_date,(page - 1)*limit,limit))
+
+    result = cursor.fetchall()
+    fields = cursor.description
+    conn.close()
+    res_lst = []
+    fields_lst = []
+    for each_field in fields:
+        fields_lst.append(each_field[0])
+    for each_res in result:
+        each_res = user_auth_area_data_filter(each_res)
+        if each_res != None:
+            res_lst.append(dict(zip(fields_lst,each_res)))
+    return res_lst,length
+
 
 #获取更新时间
 @app.context_processor
