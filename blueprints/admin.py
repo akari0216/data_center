@@ -45,9 +45,13 @@ def red_film_table():
 def red_film_abnormal():
     return login_verify("admin/data_table/red_film_abnormal.html")
 
-@admin_blue.route("/table_list/not_open_film_cinema.html")
+@admin_blue.route("/table_list/not_open_film_cinema")
 def not_open_film_cinema():
     return login_verify("admin/data_table/not_open_film_cinema.html")
+
+@admin_blue.route("/table_list/film_feature_check")
+def film_feature_check():
+    return login_verify("/admin/data_table/film_feature_check.html")
 
 @admin_blue.route("/table_list/data_table/maoyan_presale_price")
 def maoyan_presale_price():

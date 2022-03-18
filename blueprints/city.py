@@ -37,7 +37,7 @@ def red_film_table():
 def red_film_abnormal():
     return login_verify("city/data_table/red_film_abnormal.html")
 
-@city_blue.route("/table_list/not_open_film_cinema.html")
+@city_blue.route("/table_list/not_open_film_cinema")
 def not_open_film_cinema():
     return login_verify("city/data_table/not_open_film_cinema.html")
 

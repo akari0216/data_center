@@ -25,7 +25,7 @@ def session_detail_table():
 def session_status_statistic():
     return login_verify("cinema/data_table/session_status_statistic.html")
 
-@cinema_blue.route("/table_list/not_open_film_cinema.html")
+@cinema_blue.route("/table_list/not_open_film_cinema")
 def not_open_film_cinema():
     return login_verify("cinema/data_table/not_open_film_cinema.html")
 
