@@ -140,8 +140,11 @@ layui.use(['layer','laydate','form','table'],function(){
             cols:[[
                 {field:"cinema",title:"影城",width:150},
                 {field:"city",title:"同城",width:100},
-                {field:"film_center",title:"排片中心",width:100},
-                {field:"red_film_session",title:"红片排场",width:100},
+                {field:"film_center",title:"排片中心",width:100, totalRowText:"合计"},
+                {field:"status_open",title:"红片已开启",width:100, totalRow:true},
+                {field:"status_plan",title:"红片已计划",width:100, totalRow:true},
+                {field:"status_approve",title:"红片已批准",width:100, totalRow:true},
+                {field:"status_total",title:"红片总排场",width:100, totalRow:true}
             ]],
 
         });

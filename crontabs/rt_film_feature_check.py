@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import pymysql
 import ftplib
-import re
+import re,os
 import datetime
 from sqlalchemy import create_engine
 from logger import get_logger
@@ -73,9 +73,10 @@ def film_feature_count(df,language_list,film_feature_dict):
 
 #影片特征检查
 def film_feature_check(df):
-    language_list = ["国语","英语","日语","韩语","俄语","粤语","西班牙语","印度语","保加利亚","武汉话","四川方言","河南方言"]
-    film_feature_dict = {"数字":"数字2D","数字3D":"数字3D","数字IMAX":"IMAX2D","数字IMAX3D":"IMAX3D","其他":"CINITY2D,CINITY3D",\
-        "其他特种":"杜比视界2D,杜比视界3D","中国巨幕":"中国巨幕2D,中国巨幕3D"}
+    language_list = ["国语","英语","日语","韩语","俄语","法语","德语","粤语","泰语","西班牙语","印度语","阿拉伯语","保加利亚语","波兰语","丹麦语","荷兰语","罗马尼亚语",\
+        "蒙古语","闽南语","葡萄牙语","瑞典语","土耳其语","维吾尔语","西班牙语","意大利语","越南语","武汉话","四川方言","河南方言","湖北方言","湖南方言","陕西方言","泰米尔语"]
+    film_feature_dict = {"数字":"数字2D","数字3D":"数字3D","数字IMAX":"IMAX2D","数字IMAX3D":"IMAX3D","CINITY":"CINITY2D,CINITY3D",\
+        "杜比视界":"杜比视界2D,杜比视界3D","中国巨幕":"中国巨幕2D,中国巨幕3D"}
     field_dict = {"影厅":"cinema_hall","影片":"film","场次时间":"session_time","人数":"people","票房":"bo","场次状态":"session_status","总座位数":"seats","上座率":"occupancy",\
         "场次特征":"film_feature","专资日期":"op_date","cinema_name":"cinema"}
     pat = "(（.*?）)"

@@ -45,7 +45,7 @@ fields_dict = {"film_total":"film,session,session_percent,people,people_percent,
         arrange_film_benefit,occupancy,people_per_session,op_date",\
             "film_session_detail":"cinema,city,film_center,hall,film,session_time,bo,people,avg_price,seats,occupancy,session_status,op_date",
             "film_session_status":"cinema,city,film_center,film,status_open,status_plan,status_approve,status_total,op_date",
-            "red_film_data":"cinema,city,film_center,sum(red_film_session) as red_film_session",
+            "red_film_data":"cinema,city,film_center,status_open,status_plan,status_approve,status_total",
             "red_film_abnormal":"cinema,city,film_center,hall,film,session_time,bo,people,seats,occupancy,session_status,op_date",
             "not_open_film_cinema":"cinema,city,film_center,film,op_date",
             "predict_film_cinema":"cinema,city,film_center,film,predict_bo,predict_bo_percent,predict_date",

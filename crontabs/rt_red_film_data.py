@@ -20,6 +20,7 @@ def read_sql(sql):
     df = pd.DataFrame(res)
     return df
 
+
 #写入数据
 def to_sql(df,tablename):
     conn = create_engine("mysql+pymysql://root:jy123456@192.168.16.114:3306/film_data?charset=utf8")
@@ -66,7 +67,8 @@ def red_film_run(df,date):
     df["影片"].replace(pat,"",regex = True,inplace = True)
     df["影片"].replace("怒火重案","怒火·重案",inplace = True)
     df["影片"].replace("奇迹▪笨小孩","奇迹·笨小孩",inplace = True)
-    df = df[df["场次状态"].isin(["开启"])]
+    df = df[df["场次状态"].isin(["开启","已计划","已批准"])]
+    status_list = ["已批准","已计划","开启"]
     red_film_lst = red_film_list()
     df = df[df["影片"].isin(red_film_lst)]
     df["日期"] = df["场次时间"].replace(" \d\d:\d\d:\d\d","",regex = True)
@@ -87,15 +89,29 @@ def red_film_run(df,date):
     if len(df_red_film) != 0:
         for each_date in red_film_date_list:
             each_df_red_film = df_red_film[df_red_film["日期"].astype(str).isin([each_date])]
-            each_df_table_red_film = pd.pivot_table(data = each_df_red_film,index = ["影院"],values = ["影片"],aggfunc = {"影片":len},fill_value = 0,margins = False)
+            each_df_red_film["场次值"] = 1
+            #按照session_status_statistic写
+            each_df_table_red_film = pd.pivot_table(data = each_df_red_film, index = ["影院"], values = ["场次值"], aggfunc = [len], fill_value = 0,margins = False)
             each_df_table_red_film.reset_index(inplace = True)
-            each_df_table_red_film = pd.merge(left = each_df_table_red_film,right = df_cinema_area,how = "left",left_on = "影院",right_on = "vista_cinema_name")
-            each_df_table_red_film.drop(columns = ["影院","vista_cinema_name"],axis = 1,inplace = True)
-            each_df_table_red_film.rename(columns = {"cinema_name":"cinema","影片":"red_film_session"},inplace = True)
-            each_df_table_red_film["op_date"] = each_date
-            each_df_table_red_film["fetch_date"] = today
-            each_df_table_red_film = each_df_table_red_film.reindex(columns = ["cinema","city","film_center","red_film_session","op_date","fetch_date"])
-            df_table_red_film = pd.concat([df_table_red_film,each_df_table_red_film],ignore_index = True)
+            each_df_table_red_film2 = each_df_table_red_film[["影院"]]
+            table_columns = each_df_table_red_film.columns.level[2]
+            for each_status in status_list:
+                if status in table_columns:
+                    each_df_table_red_film2[each_status] = each_df_table_red_film["len"]["场次值"][each_status]
+                else:
+                    each_df_table_red_film2[each_status] = 0
+            each_df_table_red_film2["总计"] = each_df_table_red_film2["开启"] + each_df_table_red_film2["已批准"] + each_df_table_red_film2["已计划"]
+            each_df_table_red_film2.columns = each_df_table_red_film2.columns.get_level_values(0)
+            each_df_table_red_film2.reset_index(inplace = True)
+            # each_df_table_red_film = pd.pivot_table(data = each_df_red_film,index = ["影院"],values = ["影片"],aggfunc = {"影片":len},fill_value = 0,margins = False)
+            # each_df_table_red_film.reset_index(inplace = True)
+            each_df_table_red_film2 = pd.merge(left = each_df_table_red_film2,right = df_cinema_area,how = "left",left_on = "影院",right_on = "vista_cinema_name")
+            each_df_table_red_film2.drop(columns = ["影院","vista_cinema_name"],axis = 1,inplace = True)
+            each_df_table_red_film2.rename(columns = {"cinema_name":"cinema","已批准":"status_approve","已计划":"status_plan","开启":"status_open","总计":"status_total"},inplace = True)
+            each_df_table_red_film2["op_date"] = each_date
+            each_df_table_red_film2["fetch_date"] = today
+            each_df_table_red_film2 = each_df_table_red_film2.reindex(columns = ["cinema","city","film_center","status_open","status_plan","status_approve","status_total","op_date","fetch_date"])
+            df_table_red_film = pd.concat([df_table_red_film,each_df_table_red_film2],ignore_index = True)
 
     if len(df_red_film_abnormal) != 0:
         for each_date in red_film_date_list:
